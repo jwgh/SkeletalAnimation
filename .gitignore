@@ -1,0 +1,8 @@
+Skeletal/cmake-build-debug
+Skeletal/cmake-build-release
+.DS_Store
+.idea/
+.vs/
+CMakeSettings.json
+out/
+.icloud
