@@ -11,7 +11,9 @@
 
 #include "Shader.h"
 
-constexpr unsigned int MAX_BONES{ 8 };
+constexpr unsigned int MAX_BONES{ 8 }; // 8 bones, because 4 is not enough and I'm sending it to the shader in vec4s
+                                       // with only 4 bones influencing a vertex, the hands get all messed up because
+                                       // of all the f-ing fingers.
 
 // TODO: store texture and material info
 struct Vertex {

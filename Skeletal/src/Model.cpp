@@ -36,87 +36,7 @@ Model::Model(const std::filesystem::path& path): dir_path(path.parent_path()) {
         }
     }
 
-    root = initNode(scene->mRootNode, std::make_shared<Node>(Node()));
-    bone_matrices.resize(total_bones);
-}
-
-Model::~Model() {
-    aiReleaseImport(scene);
-}
-
-std::shared_ptr<Node> Model::initNode(aiNode* ai_node, std::shared_ptr<Node> new_node) {
-    new_node->name = ai_node->mName.C_Str();
-    new_node->transform = assimp_to_glm_mat4(ai_node->mTransformation);
-    // TODO: get parent and meta data and crap?
-
-    for (auto i{ 0 }; i < ai_node->mNumMeshes; i++) {
-        auto mesh = scene->mMeshes[ai_node->mMeshes[i]];
-        meshes.emplace_back(std::make_shared<Mesh>());
-        auto& new_mesh = *meshes.back();
-
-        new_mesh.name = ai_node->mName.C_Str();
-        new_mesh.default_transform = assimp_to_glm_mat4( ai_node->mTransformation );
-
-        std::vector<Vertex> vertices;
-        std::vector<GLuint> indices;
-
-        auto material = scene->mMaterials[mesh->mMaterialIndex];
-        aiString texture_file;
-        material->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), texture_file);
-        if(auto texture = scene->GetEmbeddedTexture(texture_file.C_Str())) {
-            //returned pointer is not null, read texture from memory
-            new_mesh.diffuse0_ID = TextureManager::load_texture_from_memory(texture);
-        } else {
-            //regular file, check if it exists and read it
-            material->GetTexture(aiTextureType_DIFFUSE, 0, &texture_file);
-            std::string item = texture_file.C_Str();
-            int i = item.length() - 1;
-            for (; i >= 0; i--){
-                if(item[i] == '\\'){
-                    break;
-                }
-            }
-            item = item.substr(i + 1);
-            std::filesystem::path path = dir_path;
-            path /= item;
-            new_mesh.diffuse0_ID = TextureManager::load_texture_from_file(path);
-        }
-
-        for (auto v_idx{ 0 }; v_idx < mesh->mNumVertices; v_idx++) {
-            Vertex v;
-            v.position = glm::vec3(mesh->mVertices[v_idx].x, mesh->mVertices[v_idx].y, mesh->mVertices[v_idx].z);
-            v.tex_coord = glm::vec2(mesh->mTextureCoords[0][v_idx].x, mesh->mTextureCoords[0][v_idx].y);
-            v.normal = glm::vec3(mesh->mNormals[v_idx].x, mesh->mNormals[v_idx].y, mesh->mNormals[v_idx].z);
-            vertices.push_back(v);
-        }
-        for (auto f_index{ 0 }; f_index < mesh->mNumFaces; f_index++) {
-            auto face = mesh->mFaces[f_index];
-            for (auto i_index{ 0 }; i_index < face.mNumIndices; i_index++){
-                indices.push_back(face.mIndices[i_index]);
-            }
-        }
-        new_mesh.num_indices = indices.size();
-        new_mesh.num_vertices = vertices.size();
-
-
-        for (auto b_index{ 0 }; b_index < mesh->mNumBones; b_index++) {
-            auto bone = mesh->mBones[b_index];
-            auto id = bone_map.count(bone->mName.C_Str()) ?
-                      bone_map[bone->mName.C_Str()] :
-                    bone_map[bone->mName.C_Str()] = total_bones++;
-
-            bone_offsets.resize(std::max(id + 1, (GLuint) bone_offsets.size()));
-            bone_offsets[id] = assimp_to_glm_mat4(bone->mOffsetMatrix);
-
-            for (auto w_index{ 0 }; w_index < bone->mNumWeights; w_index++) {
-                auto weight = bone->mWeights[w_index];
-                new_mesh.add_bone(vertices[weight.mVertexId], id, weight.mWeight);
-            }
-        }
-
-        new_mesh.setup_VAO(vertices, indices);
-    }
-
+    /** Get ANIMATION data from the scene... */
     for(auto a_index{ 0 }; a_index < scene->mNumAnimations; a_index++){
         const auto& ai_animation = scene->mAnimations[a_index];
         Animation new_animation;
@@ -162,6 +82,98 @@ std::shared_ptr<Node> Model::initNode(aiNode* ai_node, std::shared_ptr<Node> new
         animations[a_index] = new_animation;
     }
 
+    /** ...Then RECURSIVELY create the tree of nodes( MESHES are created with nodes ) */
+    root = initNode(scene->mRootNode, std::make_shared<Node>(Node()));
+    bone_matrices.resize(total_bones);
+}
+
+Model::~Model() {
+    aiReleaseImport(scene);
+}
+
+std::shared_ptr<Node> Model::initNode(aiNode* ai_node, std::shared_ptr<Node> new_node) {
+    /** Create a new node, this is the CURRENT node in the tree (to make a root, send in a NEW sharedPTR */
+    new_node->name = ai_node->mName.C_Str();
+    new_node->transform = assimp_to_glm_mat4(ai_node->mTransformation);
+    // TODO: get parent and meta data and crap?
+
+    /** For each MESH in this node... */
+    for (auto i{ 0 }; i < ai_node->mNumMeshes; i++) {
+        auto mesh = scene->mMeshes[ai_node->mMeshes[i]];
+        meshes.emplace_back(std::make_shared<Mesh>());
+        auto& new_mesh = *meshes.back();
+
+        new_mesh.name = ai_node->mName.C_Str();
+        new_mesh.default_transform = assimp_to_glm_mat4( ai_node->mTransformation );
+
+        std::vector<Vertex> vertices;
+        std::vector<GLuint> indices;
+
+        /** ... Get MATERIAL info for the mesh... */
+        auto material = scene->mMaterials[mesh->mMaterialIndex];
+        aiString texture_file;
+        material->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), texture_file);
+        if(auto texture = scene->GetEmbeddedTexture(texture_file.C_Str())) {
+            //returned pointer is not null, read texture from memory
+            new_mesh.diffuse0_ID = TextureManager::load_texture_from_memory(texture);
+        } else {
+            //regular file, check if it exists and read it
+            material->GetTexture(aiTextureType_DIFFUSE, 0, &texture_file);
+            std::string item = texture_file.C_Str();
+            int i = item.length() - 1;
+            for (; i >= 0; i--){
+                if(item[i] == '\\'){
+                    break;
+                }
+            }
+            item = item.substr(i + 1);
+            std::filesystem::path path = dir_path;
+            path /= item;
+            new_mesh.diffuse0_ID = TextureManager::load_texture_from_file(path);
+        }
+
+        /** ... Get VERTEX info for the mesh... */
+        for (auto v_idx{ 0 }; v_idx < mesh->mNumVertices; v_idx++) {
+            Vertex v;
+            v.position = glm::vec3(mesh->mVertices[v_idx].x, mesh->mVertices[v_idx].y, mesh->mVertices[v_idx].z);
+            v.tex_coord = glm::vec2(mesh->mTextureCoords[0][v_idx].x, mesh->mTextureCoords[0][v_idx].y);
+            v.normal = glm::vec3(mesh->mNormals[v_idx].x, mesh->mNormals[v_idx].y, mesh->mNormals[v_idx].z);
+            vertices.push_back(v);
+        }
+
+        /** ... Get INDICES info for the mesh... */
+        for (auto f_index{ 0 }; f_index < mesh->mNumFaces; f_index++) {
+            auto face = mesh->mFaces[f_index];
+            for (auto i_index{ 0 }; i_index < face.mNumIndices; i_index++){
+                indices.push_back(face.mIndices[i_index]);
+            }
+        }
+        new_mesh.num_indices = indices.size();
+        new_mesh.num_vertices = vertices.size();
+
+        /** ... Get BONE info for the mesh... */
+        for (auto b_index{ 0 }; b_index < mesh->mNumBones; b_index++) {
+            auto bone = mesh->mBones[b_index];
+            auto id = bone_map.count(bone->mName.C_Str()) ?
+                      bone_map[bone->mName.C_Str()] :
+                    bone_map[bone->mName.C_Str()] = total_bones++;
+
+            bone_offsets.resize(std::max(id + 1, (GLuint) bone_offsets.size()));
+            bone_offsets[id] = assimp_to_glm_mat4(bone->mOffsetMatrix);
+
+            for (auto w_index{ 0 }; w_index < bone->mNumWeights; w_index++) {
+                auto weight = bone->mWeights[w_index];
+                new_mesh.add_bone(vertices[weight.mVertexId], id, weight.mWeight);
+            }
+        }
+
+        /** ... FINALLY (for the mesh part), setup the VAO, VBO and EBO data and all the buffers on the GPU... */
+        new_mesh.setup_VAO(vertices, indices);
+    }
+
+    /**
+     * ...Recursively create the rest of the nodes...
+     */
     for (auto i{ 0 }; i < ai_node->mNumChildren; i++) {
         new_node->children.emplace_back(initNode(ai_node->mChildren[i], std::make_shared<Node>(Node())));
     }
@@ -172,17 +184,17 @@ void Model::update_bone_matrices(int animation_ID, std::shared_ptr<Node> node, c
     const auto& node_name = node->name;
 
 
-    auto& animation2 = animations[animation_ID];
+    auto& animation = animations[animation_ID];
     //const auto& node_name = animation2.name;
     glm::mat4 current_transform;
     if (anim_channels.count(std::tuple<GLuint, std::string>(animation_ID, node_name))) {
         GLuint channel_id = anim_channels[std::tuple<GLuint, std::string>(animation_ID, node_name)];
 
-        auto channel2 = animation2.channels[channel_id];
+        const auto& channel = animation.channels[channel_id];
 
-        glm::mat4 T = interpolate_translation(channel2.keyframes_position, ticks);
-        glm::mat4 R = interpolate_rotation(channel2.keyframes_rotation, ticks);
-        glm::mat4 S = interpolate_scaling(channel2.keyframes_scaling, ticks);
+        glm::mat4 T = interpolate_translation(channel.keyframes_position, ticks);
+        glm::mat4 R = interpolate_rotation(channel.keyframes_rotation, ticks);
+        glm::mat4 S = interpolate_scaling(channel.keyframes_scaling, ticks);
 
         current_transform = T * R * S;
     } else {
@@ -192,7 +204,7 @@ void Model::update_bone_matrices(int animation_ID, std::shared_ptr<Node> node, c
         GLuint i = bone_map[node_name];
         bone_matrices[i] = transform * current_transform * bone_offsets[i];
     }
-    for (auto child : node->children) {
+    for (const auto& child : node->children) {
         update_bone_matrices(animation_ID, child, transform * current_transform, ticks);
     }
 }
@@ -267,7 +279,7 @@ glm::mat4 Model::interpolate_rotation(const std::vector<KeyFrameRot>& keys, doub
 
     float factor = (ticks - left_ptr->time) / (right_ptr->time - left_ptr->time);
 
-    return glm::mat4_cast(glm::lerp(left_ptr->quat, right_ptr->quat, factor));
+    return glm::mat4_cast(glm::slerp(left_ptr->quat, right_ptr->quat, factor));
 }
 
 glm::mat4 Model::interpolate_scaling(const std::vector<KeyFrameScale>& keys, double ticks){

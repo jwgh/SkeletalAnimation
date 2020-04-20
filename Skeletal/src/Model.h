@@ -14,6 +14,23 @@
 #include "Mesh.h"
 #include "Shader.h"
 
+/**
+ * Model class holds the Nodes, Meshes, Materials and Animations in a scene imported from assimp
+ *
+ * initNode() recursively parses the info from an assimpScene and creates the tree of nodes
+ * two draw functions are provided, one that just draws the default pos
+ * and one that draws an animation, repeated
+ *
+ * update_bone_matrices recursively goes through the tree from root node and gets the TRS matrix for the skeletal animation
+ *
+ * Channel class holds the keyframe information, all the scaling and translation vectors and rotation quaternions for each keyframe
+ *
+ * Animation holds all the information for a single animation, like "Run"
+ *
+ * Node and KeyFrame classes are self explanatory
+ *
+ * interpolate T/R/S functions finds the two keyframes depending on time, and interpolates between them
+ */
 
 class Node{
 public:
