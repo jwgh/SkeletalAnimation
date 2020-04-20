@@ -9,10 +9,33 @@
 
 #include <assimp/scene.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include "Mesh.h"
 #include "Shader.h"
 
+
+struct KeyFramePos{
+    double time;
+    glm::vec3 vec;
+}; using KeyFrameScale = KeyFramePos;
+
+struct KeyFrameRot{
+    double time;
+    glm::quat quat;
+};
+
+class Channel{
+public:
+    GLuint ID;
+    std::string node_name;
+    std::vector<KeyFramePos> keyframes_position;
+    std::vector<KeyFrameRot> keyframes_rotation;
+    std::vector<KeyFrameScale> keyframes_scaling;
+    GLuint num_keyframes_position;
+    GLuint num_keyframes_rotation;
+    GLuint num_keyframes_scaling;
+};
 
 class Animation{
 public:
@@ -20,6 +43,8 @@ public:
     GLuint ID;
     double duration;
     double ticks_per_second;
+    GLuint num_channels;
+    std::vector<Channel> channels;
 };
 
 class Model {

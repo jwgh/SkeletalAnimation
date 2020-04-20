@@ -111,12 +111,46 @@ void Model::initNode(aiNode* node) {
     }
 
     for(auto a_index{ 0 }; a_index < scene->mNumAnimations; a_index++){
-        auto ai_animation = scene->mAnimations[a_index];
+        const auto& ai_animation = scene->mAnimations[a_index];
         Animation new_animation;
         new_animation.name = ai_animation->mName.C_Str();
         new_animation.ID = a_index;
         new_animation.duration = ai_animation->mDuration;
         new_animation.ticks_per_second = ai_animation->mTicksPerSecond;
+        new_animation.num_channels = ai_animation->mNumChannels;
+
+        for(auto c_index{ 0 }; c_index < new_animation.num_channels; c_index++){
+            const auto& ai_channel = ai_animation->mChannels[c_index];
+            Channel new_channel;
+            new_channel.ID = c_index;
+            new_channel.node_name = ai_channel->mNodeName.C_Str();
+            new_channel.num_keyframes_position = ai_channel->mNumPositionKeys;
+            new_channel.num_keyframes_rotation = ai_channel->mNumRotationKeys;
+            new_channel.num_keyframes_scaling = ai_channel->mNumScalingKeys;
+
+            for(auto p_index{ 0 }; p_index < new_channel.num_keyframes_position; p_index++){
+                const auto& ai_pos_key = ai_channel->mPositionKeys[p_index];
+                KeyFramePos new_keyframe{ ai_pos_key.mTime,
+                                          glm::vec3{ ai_pos_key.mValue.x, ai_pos_key.mValue.y, ai_pos_key.mValue.z } };
+                new_channel.keyframes_position.push_back(new_keyframe);
+            }
+
+            for(auto r_index{ 0 }; r_index < new_channel.num_keyframes_position; r_index++){
+                const auto& ai_rot_key = ai_channel->mRotationKeys[r_index];
+                KeyFrameRot new_keyframe{ ai_rot_key.mTime,
+                                          glm::quat{ ai_rot_key.mValue.w, ai_rot_key.mValue.x, ai_rot_key.mValue.y, ai_rot_key.mValue.z } }; // unsure about the ordering here
+                new_channel.keyframes_rotation.push_back(new_keyframe);
+
+            }
+
+            for(auto s_index{ 0 }; s_index < new_channel.num_keyframes_position; s_index++){
+                const auto& ai_scale_key = ai_channel->mScalingKeys[s_index];
+                KeyFrameScale new_keyframe{ ai_scale_key.mTime,
+                                            glm::vec3{ ai_scale_key.mValue.x, ai_scale_key.mValue.z, ai_scale_key.mValue.z } };
+
+            }
+        }
+
         animations[a_index] = new_animation;
     }
 
