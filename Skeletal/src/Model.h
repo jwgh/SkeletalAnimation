@@ -15,6 +15,13 @@
 #include "Shader.h"
 
 
+class Node{
+public:
+    std::string name;
+    glm::mat4 transform;
+    std::vector<std::shared_ptr<Node>> children;
+};
+
 struct KeyFramePos{
     double time;
     glm::vec3 vec;
@@ -56,15 +63,13 @@ public:
     void draw(GLuint animation_id, const Shader& shader, double time);
     
 private:
-    void initNode(aiNode* node);
+    std::shared_ptr<Node> initNode(aiNode* ai_node, std::shared_ptr<Node> new_node);
     void update_bone_matrices(int animation_id, aiNode* node, const glm::mat4& transform, double ticks);
+    void update_bone_matrices2(const Animation& animation, const glm::mat4& transform, double ticks);
 
-    static glm::mat4 interpolate_rotation   (aiQuatKey*   keys, GLuint n, double ticks);
-    static glm::mat4 interpolate_scaling    (aiVectorKey* keys, GLuint n, double ticks);
-
-    static glm::mat4 interpolate_translation(const std::vector<KeyFramePos>& keys, double ticks);
-    static glm::mat4 interpolate_rotation2   (const std::vector<KeyFrameRot>& keys, double ticks);
-    static glm::mat4 interpolate_scaling2    (const std::vector<KeyFrameScale>& keys, double ticks);
+    static glm::mat4 interpolate_translation (const std::vector<KeyFramePos>& keys, double ticks);
+    static glm::mat4 interpolate_rotation    (const std::vector<KeyFrameRot>& keys, double ticks);
+    static glm::mat4 interpolate_scaling     (const std::vector<KeyFrameScale>& keys, double ticks);
 
 
     std::map<std::string, GLuint> bone_map;
@@ -80,6 +85,8 @@ private:
 
     std::vector<std::shared_ptr<Mesh>> meshes;
     const aiScene* scene;
+
+    std::shared_ptr<Node> root;
 };
 
 #endif //SKELETAL_MODEL_H

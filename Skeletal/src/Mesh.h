@@ -38,6 +38,11 @@ public:
     GLuint num_indices;
     GLuint num_vertices;
 
+    std::string name;
+    glm::mat4 default_transform;
+
+    std::vector<std::shared_ptr<Mesh>> children;
+
     void setup_VAO(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices);
 };
 

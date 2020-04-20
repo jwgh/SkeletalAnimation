@@ -36,7 +36,7 @@ Model::Model(const std::filesystem::path& path): dir_path(path.parent_path()) {
         }
     }
 
-    initNode(scene->mRootNode);
+    root = initNode(scene->mRootNode, std::make_shared<Node>(Node()));
     bone_matrices.resize(total_bones);
 }
 
@@ -44,12 +44,18 @@ Model::~Model() {
     aiReleaseImport(scene);
 }
 
-void Model::initNode(aiNode* node) {
-    for (auto i{ 0 }; i < node->mNumMeshes; i++) {
-        auto mesh = scene->mMeshes[node->mMeshes[i]];
+std::shared_ptr<Node> Model::initNode(aiNode* ai_node, std::shared_ptr<Node> new_node) {
+    new_node->name = ai_node->mName.C_Str();
+    new_node->transform = assimp_to_glm_mat4(ai_node->mTransformation);
+    // TODO: get parent and meta data and crap?
+
+    for (auto i{ 0 }; i < ai_node->mNumMeshes; i++) {
+        auto mesh = scene->mMeshes[ai_node->mMeshes[i]];
         meshes.emplace_back(std::make_shared<Mesh>());
         auto& new_mesh = *meshes.back();
 
+        new_mesh.name = ai_node->mName.C_Str();
+        new_mesh.default_transform = assimp_to_glm_mat4( ai_node->mTransformation );
 
         std::vector<Vertex> vertices;
         std::vector<GLuint> indices;
@@ -156,55 +162,56 @@ void Model::initNode(aiNode* node) {
         animations[a_index] = new_animation;
     }
 
-    for (auto i{ 0 }; i < node->mNumChildren; i++) {
-        initNode(node->mChildren[i]);
+    for (auto i{ 0 }; i < ai_node->mNumChildren; i++) {
+        new_node->children.emplace_back(initNode(ai_node->mChildren[i], std::make_shared<Node>(Node())));
     }
+    return new_node;
 }
 
-glm::mat4 Model::interpolate_scaling(aiVectorKey* keys, GLuint n, double ticks) {
-    if (n == 0){
-        return glm::mat4{ 1.0f }; }
+void Model::update_bone_matrices2(const Animation& animation, const glm::mat4& transform, double ticks){
 
-    if (n == 1){
-        return glm::scale(glm::mat4{ 1.0f }, glm::vec3{ keys->mValue.x, keys->mValue.y, keys->mValue.z });
-    }
-    if (ticks <= keys[0].mTime){
-        return glm::scale(glm::mat4{ 1.0f }, glm::vec3{ keys[0].mValue.x, keys[0].mValue.y, keys[0].mValue.z });
-    }
-    if (keys[n - 1].mTime <= ticks){
-        return glm::scale(glm::mat4{ 1.0f },
-                          glm::vec3{ keys[n - 1].mValue.x, keys[n - 1].mValue.y, keys[n - 1].mValue.z });
-    }
-    
-    aiVectorKey anchor;
-    anchor.mTime = ticks;
-    auto right_ptr = std::upper_bound(keys, keys + n, anchor, [] (const aiVectorKey &a, const aiVectorKey &b) {
-        return a.mTime < b.mTime;
-    });
-    auto left_ptr = right_ptr - 1;
-    
-    float factor = (ticks - left_ptr->mTime) / (right_ptr->mTime - left_ptr->mTime);
 
-    aiVector3D interpolated = left_ptr->mValue * (1.0f - factor) + right_ptr->mValue * factor;
-    return glm::scale(glm::mat4{ 1.0f }, glm::vec3{ interpolated.x, interpolated.y, interpolated.z });
+    const auto& name = animation.name;
+    glm::mat4 current_transform;
+    if(!animation.channels.empty()){
+        GLuint channel_id = anim_channels[std::tuple<GLuint, std::string>(animation.ID, name)];
+        auto channel = animation.channels[channel_id];
+
+        glm::mat4 T = interpolate_translation(channel.keyframes_position, ticks);
+        glm::mat4 R = interpolate_rotation(channel.keyframes_rotation, ticks);
+        glm::mat4 S = interpolate_scaling(channel.keyframes_scaling, ticks);
+
+        current_transform = T * R * S;
+    }
+    else{
+        current_transform = glm::mat4{ 1.0f }; // TODO: node transformation, need to parse this I guess
+    }
+    if (bone_map.count(name)) {
+        GLuint i = bone_map[name];
+        bone_matrices[i] = transform * current_transform * bone_offsets[i];
+    }
+    /*for (int i = 0; i < node->mNumChildren; i++) {
+        update_bone_matrices(animation_id, node->mChildren[i], transform * current_transform, ticks);
+    }*/ // is this mesh children?
 }
+
 
 void Model::update_bone_matrices(int animation_id, aiNode* node, const glm::mat4& transform, double ticks) {
     std::string node_name = node->mName.C_Str();
-    auto animation = scene->mAnimations[animation_id];
+
 
     auto& animation2 = animations[animation_id];
+    //const auto& node_name = animation2.name;
     glm::mat4 current_transform;
     if (anim_channels.count(std::tuple<GLuint, std::string>(animation_id, node_name))) {
         GLuint channel_id = anim_channels[std::tuple<GLuint, std::string>(animation_id, node_name)];
-        auto channel = animation->mChannels[channel_id];
 
         auto channel2 = animation2.channels[channel_id];
 
         glm::mat4 T = interpolate_translation(channel2.keyframes_position, ticks);
-        glm::mat4 R = interpolate_rotation2(channel2.keyframes_rotation, ticks);
-        glm::mat4 S = interpolate_scaling(channel->mScalingKeys, channel->mNumScalingKeys, ticks);
-        
+        glm::mat4 R = interpolate_rotation(channel2.keyframes_rotation, ticks);
+        glm::mat4 S = interpolate_scaling(channel2.keyframes_scaling, ticks);
+
         current_transform = T * R * S;
     } else {
         current_transform = assimp_to_glm_mat4(node->mTransformation);
@@ -268,7 +275,7 @@ glm::mat4 Model::interpolate_translation(const std::vector<KeyFramePos>& keys, d
     return glm::translate(glm::mat4{ 1.0f }, interpolated);
 }
 
-glm::mat4 Model::interpolate_rotation2(const std::vector<KeyFrameRot>& keys, double ticks){
+glm::mat4 Model::interpolate_rotation(const std::vector<KeyFrameRot>& keys, double ticks){
     if (keys.empty()) {
         return glm::mat4{ 1.0f };
     }
@@ -291,6 +298,27 @@ glm::mat4 Model::interpolate_rotation2(const std::vector<KeyFrameRot>& keys, dou
     return glm::mat4_cast(glm::lerp(left_ptr->quat, right_ptr->quat, factor));
 }
 
-glm::mat4 Model::interpolate_scaling2(const std::vector<KeyFrameScale>& keys, double ticks){
-    return glm::mat4();
+glm::mat4 Model::interpolate_scaling(const std::vector<KeyFrameScale>& keys, double ticks){
+    if (keys.empty()) {
+        return glm::mat4{ 1.0f };
+    }
+    if (keys.size() == 1 || ticks <= keys[0].time){
+        return glm::scale( glm::mat4{ 1.0f }, keys[0].vec );
+    }
+    if (keys.back().time <= ticks){
+        return glm::scale(glm::mat4{ 1.0f }, keys.back().vec );
+    }
+
+    KeyFrameScale anchor;
+    anchor.time = ticks;
+    auto right_ptr = std::upper_bound(keys.begin(), keys.end(), anchor, [] (const KeyFrameScale& a, const KeyFrameScale& b) {
+        return a.time < b.time;
+    });
+    auto left_ptr = right_ptr - 1;
+
+    float factor = (ticks - left_ptr->time) / (right_ptr->time - left_ptr->time);
+
+    glm::vec3 interpolated = left_ptr->vec * (1.0f - factor) + right_ptr->vec * factor;
+    return glm::scale(glm::mat4{ 1.0f }, interpolated);
 }
+
