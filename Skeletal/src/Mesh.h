@@ -25,20 +25,20 @@ struct Vertex {
 
 class Mesh {
 public:
-    Mesh(const std::filesystem::path& directory_path, aiMesh* mesh, const aiScene* scene,
-         std::map<std::string, GLuint>& bone_map, GLuint& total_bones, std::vector<glm::mat4>& bone_offsets);
+    Mesh() = default;
     ~Mesh();
     void draw(const Shader& shader_ptr) const;
 
-private:
     void add_bone(Vertex& vertex, int boneID, float weight);
 
     GLuint VAO;
     GLuint VBO;
     GLuint EBO;
-    GLuint texID;
+    GLuint diffuse0_ID;
     GLuint num_indices;
     GLuint num_vertices;
+
+    void setup_VAO(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices);
 };
 
 #endif //SKELETAL_MESH_H

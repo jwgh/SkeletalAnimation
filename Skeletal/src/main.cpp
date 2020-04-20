@@ -117,7 +117,7 @@ void init() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
-    model = std::make_shared<Model>("../Resources/models/ninja/Jump.fbx");
+    model = std::make_shared<Model>("../Resources/models/ninja/Run.fbx");
     camera = std::make_shared<Camera>(glm::vec3{0.0f, 80.0f, 365.0f}, width, height);
     shader = std::make_shared<Shader>("../Resources/shaders/skeletal.vert", "../Resources/shaders/simple.frag");
 }

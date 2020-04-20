@@ -13,7 +13,6 @@
 #include "Mesh.h"
 #include "Shader.h"
 
-
 class Model {
 public:
     Model() = delete;

@@ -8,6 +8,7 @@
 
 #include "Model.h"
 #include "Util.h"
+#include "TextureManager.h"
 
 Model::Model(const std::filesystem::path& path): dir_path(path.parent_path()) {
     scene = aiImportFile(path.c_str(),
@@ -45,7 +46,67 @@ Model::~Model() {
 void Model::initNode(aiNode* node) {
     for (auto i{ 0 }; i < node->mNumMeshes; i++) {
         auto mesh = scene->mMeshes[node->mMeshes[i]];
-        meshes.emplace_back(std::make_shared<Mesh>(dir_path, mesh, scene, bone_map, total_bones, bone_offsets));
+        meshes.emplace_back(std::make_shared<Mesh>());
+        auto& new_mesh = *meshes.back();
+
+
+        std::vector<Vertex> vertices;
+        std::vector<GLuint> indices;
+
+        auto material = scene->mMaterials[mesh->mMaterialIndex];
+        aiString texture_file;
+        material->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), texture_file);
+        if(auto texture = scene->GetEmbeddedTexture(texture_file.C_Str())) {
+            //returned pointer is not null, read texture from memory
+            new_mesh.diffuse0_ID = TextureManager::load_texture_from_memory(texture);
+        } else {
+            //regular file, check if it exists and read it
+            material->GetTexture(aiTextureType_DIFFUSE, 0, &texture_file);
+            std::string item = texture_file.C_Str();
+            int i = item.length() - 1;
+            for (; i >= 0; i--){
+                if(item[i] == '\\'){
+                    break;
+                }
+            }
+            item = item.substr(i + 1);
+            std::filesystem::path path = dir_path;
+            path /= item;
+            new_mesh.diffuse0_ID = TextureManager::load_texture_from_file(path);
+        }
+
+        for (auto v_idx{ 0 }; v_idx < mesh->mNumVertices; v_idx++) {
+            Vertex v;
+            v.position = glm::vec3(mesh->mVertices[v_idx].x, mesh->mVertices[v_idx].y, mesh->mVertices[v_idx].z);
+            v.tex_coord = glm::vec2(mesh->mTextureCoords[0][v_idx].x, mesh->mTextureCoords[0][v_idx].y);
+            v.normal = glm::vec3(mesh->mNormals[v_idx].x, mesh->mNormals[v_idx].y, mesh->mNormals[v_idx].z);
+            vertices.push_back(v);
+        }
+        for (auto f_index{ 0 }; f_index < mesh->mNumFaces; f_index++) {
+            auto face = mesh->mFaces[f_index];
+            for (auto i_index{ 0 }; i_index < face.mNumIndices; i_index++){
+                indices.push_back(face.mIndices[i_index]);
+            }
+        }
+        new_mesh.num_indices = indices.size();
+        new_mesh.num_vertices = vertices.size();
+
+
+        for (auto b_index{ 0 }; b_index < mesh->mNumBones; b_index++) {
+            auto bone = mesh->mBones[b_index];
+            auto id = bone_map.count(bone->mName.C_Str()) ?
+                      bone_map[bone->mName.C_Str()] :
+                    bone_map[bone->mName.C_Str()] = total_bones++;
+
+            bone_offsets.resize(std::max(id + 1, (GLuint) bone_offsets.size()));
+            bone_offsets[id] = assimp_to_glm_mat4(bone->mOffsetMatrix);
+
+            for (auto w_index{ 0 }; w_index < bone->mNumWeights; w_index++) {
+                auto weight = bone->mWeights[w_index];
+                new_mesh.add_bone(vertices[weight.mVertexId], id, weight.mWeight);
+            }
+        }
+        new_mesh.setup_VAO(vertices, indices);
     }
     for (auto i{ 0 }; i < node->mNumChildren; i++) {
         initNode(node->mChildren[i]);
