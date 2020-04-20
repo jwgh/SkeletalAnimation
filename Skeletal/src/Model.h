@@ -13,6 +13,15 @@
 #include "Mesh.h"
 #include "Shader.h"
 
+
+class Animation{
+public:
+    std::string name;
+    GLuint ID;
+    double duration;
+    double ticks_per_second;
+};
+
 class Model {
 public:
     Model() = delete;
@@ -32,6 +41,9 @@ private:
 
     std::map<std::string, GLuint> bone_map;
     std::map<std::tuple<GLuint, std::string>, GLuint> anim_channels;
+
+    std::map<GLuint, Animation> animations;
+
     GLuint total_bones{ 0 };
     std::vector<glm::mat4> bone_matrices;
     std::vector<glm::mat4> bone_offsets;

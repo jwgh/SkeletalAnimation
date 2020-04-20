@@ -106,8 +106,20 @@ void Model::initNode(aiNode* node) {
                 new_mesh.add_bone(vertices[weight.mVertexId], id, weight.mWeight);
             }
         }
+
         new_mesh.setup_VAO(vertices, indices);
     }
+
+    for(auto a_index{ 0 }; a_index < scene->mNumAnimations; a_index++){
+        auto ai_animation = scene->mAnimations[a_index];
+        Animation new_animation;
+        new_animation.name = ai_animation->mName.C_Str();
+        new_animation.ID = a_index;
+        new_animation.duration = ai_animation->mDuration;
+        new_animation.ticks_per_second = ai_animation->mTicksPerSecond;
+        animations[a_index] = new_animation;
+    }
+
     for (auto i{ 0 }; i < node->mNumChildren; i++) {
         initNode(node->mChildren[i]);
     }
@@ -226,8 +238,9 @@ void Model::update_bone_matrices(int animation_id, aiNode* node, const glm::mat4
 }
 
 void Model::draw(GLuint animation_id, const Shader& shader, double time){
-    auto anim_length = scene->mAnimations[animation_id]->mDuration;
-    auto anim_time = time * scene->mAnimations[animation_id]->mTicksPerSecond;
+    const Animation& a{ animations[animation_id] };
+    auto anim_length = a.duration;
+    auto anim_time = time * a.ticks_per_second;
     double z = std::fmod(anim_time,anim_length);
     update_bone_matrices(animation_id, scene->mRootNode, glm::mat4{ 1.0f }, z);
     shader.use();
