@@ -1,5 +1,6 @@
 Skeletal/cmake-build-debug
 Skeletal/cmake-build-release
+Skeletal/Resources/models
 .DS_Store
 .idea/
 .vs/
