@@ -168,43 +168,15 @@ std::shared_ptr<Node> Model::initNode(aiNode* ai_node, std::shared_ptr<Node> new
     return new_node;
 }
 
-void Model::update_bone_matrices2(const Animation& animation, const glm::mat4& transform, double ticks){
+void Model::update_bone_matrices(int animation_ID, std::shared_ptr<Node> node, const glm::mat4& transform, double ticks){
+    const auto& node_name = node->name;
 
 
-    const auto& name = animation.name;
-    glm::mat4 current_transform;
-    if(!animation.channels.empty()){
-        GLuint channel_id = anim_channels[std::tuple<GLuint, std::string>(animation.ID, name)];
-        auto channel = animation.channels[channel_id];
-
-        glm::mat4 T = interpolate_translation(channel.keyframes_position, ticks);
-        glm::mat4 R = interpolate_rotation(channel.keyframes_rotation, ticks);
-        glm::mat4 S = interpolate_scaling(channel.keyframes_scaling, ticks);
-
-        current_transform = T * R * S;
-    }
-    else{
-        current_transform = glm::mat4{ 1.0f }; // TODO: node transformation, need to parse this I guess
-    }
-    if (bone_map.count(name)) {
-        GLuint i = bone_map[name];
-        bone_matrices[i] = transform * current_transform * bone_offsets[i];
-    }
-    /*for (int i = 0; i < node->mNumChildren; i++) {
-        update_bone_matrices(animation_id, node->mChildren[i], transform * current_transform, ticks);
-    }*/ // is this mesh children?
-}
-
-
-void Model::update_bone_matrices(int animation_id, aiNode* node, const glm::mat4& transform, double ticks) {
-    std::string node_name = node->mName.C_Str();
-
-
-    auto& animation2 = animations[animation_id];
+    auto& animation2 = animations[animation_ID];
     //const auto& node_name = animation2.name;
     glm::mat4 current_transform;
-    if (anim_channels.count(std::tuple<GLuint, std::string>(animation_id, node_name))) {
-        GLuint channel_id = anim_channels[std::tuple<GLuint, std::string>(animation_id, node_name)];
+    if (anim_channels.count(std::tuple<GLuint, std::string>(animation_ID, node_name))) {
+        GLuint channel_id = anim_channels[std::tuple<GLuint, std::string>(animation_ID, node_name)];
 
         auto channel2 = animation2.channels[channel_id];
 
@@ -214,14 +186,14 @@ void Model::update_bone_matrices(int animation_id, aiNode* node, const glm::mat4
 
         current_transform = T * R * S;
     } else {
-        current_transform = assimp_to_glm_mat4(node->mTransformation);
+        current_transform = node->transform;
     }
     if (bone_map.count(node_name)) {
         GLuint i = bone_map[node_name];
         bone_matrices[i] = transform * current_transform * bone_offsets[i];
     }
-    for (int i = 0; i < node->mNumChildren; i++) {
-        update_bone_matrices(animation_id, node->mChildren[i], transform * current_transform, ticks);
+    for (auto child : node->children) {
+        update_bone_matrices(animation_ID, child, transform * current_transform, ticks);
     }
 }
 
@@ -230,7 +202,7 @@ void Model::draw(GLuint animation_id, const Shader& shader, double time){
     auto anim_length = a.duration;
     auto anim_time = time * a.ticks_per_second;
     double z = std::fmod(anim_time,anim_length);
-    update_bone_matrices(animation_id, scene->mRootNode, glm::mat4{ 1.0f }, z);
+    update_bone_matrices(animation_id, root, glm::mat4{ 1.0f }, z);
     shader.use();
     shader.set_uniform_m4("u_M", glm::mat4{ 1.0f });
     shader.set_uniform_m4s("u_bones", bone_matrices);

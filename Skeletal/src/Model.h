@@ -64,8 +64,7 @@ public:
     
 private:
     std::shared_ptr<Node> initNode(aiNode* ai_node, std::shared_ptr<Node> new_node);
-    void update_bone_matrices(int animation_id, aiNode* node, const glm::mat4& transform, double ticks);
-    void update_bone_matrices2(const Animation& animation, const glm::mat4& transform, double ticks);
+    void update_bone_matrices(int animation_ID, std::shared_ptr<Node> node, const glm::mat4& transform, double ticks);
 
     static glm::mat4 interpolate_translation (const std::vector<KeyFramePos>& keys, double ticks);
     static glm::mat4 interpolate_rotation    (const std::vector<KeyFrameRot>& keys, double ticks);

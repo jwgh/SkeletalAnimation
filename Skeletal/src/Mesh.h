@@ -14,7 +14,6 @@
 constexpr unsigned int MAX_BONES{ 8 };
 
 // TODO: store texture and material info
-// TODO: move bone stuff from aiscene
 struct Vertex {
     glm::vec3 position;
     glm::vec2 tex_coord;
