@@ -58,10 +58,13 @@ public:
 private:
     void initNode(aiNode* node);
     void update_bone_matrices(int animation_id, aiNode* node, const glm::mat4& transform, double ticks);
-    
-    static glm::mat4 interpolate_translation(aiVectorKey* keys, GLuint n, double ticks);
+
     static glm::mat4 interpolate_rotation   (aiQuatKey*   keys, GLuint n, double ticks);
     static glm::mat4 interpolate_scaling    (aiVectorKey* keys, GLuint n, double ticks);
+
+    static glm::mat4 interpolate_translation(const std::vector<KeyFramePos>& keys, double ticks);
+    static glm::mat4 interpolate_rotation2   (const std::vector<KeyFrameRot>& keys, double ticks);
+    static glm::mat4 interpolate_scaling2    (const std::vector<KeyFrameScale>& keys, double ticks);
 
 
     std::map<std::string, GLuint> bone_map;

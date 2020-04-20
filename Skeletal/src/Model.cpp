@@ -149,6 +149,7 @@ void Model::initNode(aiNode* node) {
                                             glm::vec3{ ai_scale_key.mValue.x, ai_scale_key.mValue.z, ai_scale_key.mValue.z } };
 
             }
+            new_animation.channels.push_back(new_channel);
         }
 
         animations[a_index] = new_animation;
@@ -157,34 +158,6 @@ void Model::initNode(aiNode* node) {
     for (auto i{ 0 }; i < node->mNumChildren; i++) {
         initNode(node->mChildren[i]);
     }
-}
-
-glm::mat4 Model::interpolate_translation(aiVectorKey* keys, GLuint n, double ticks) {
-    if (n == 0){
-        return glm::mat4{ 1.0f };
-    }
-    if (n == 1){
-        return glm::translate(glm::mat4{ 1.0f }, glm::vec3(keys->mValue.x, keys->mValue.y, keys->mValue.z));
-    }
-    if (ticks <= keys[0].mTime){
-        return glm::translate(glm::mat4{ 1.0f }, glm::vec3(keys[0].mValue.x, keys[0].mValue.y, keys[0].mValue.z));
-    }
-    if (keys[n - 1].mTime <= ticks){
-        return glm::translate(glm::mat4{ 1.0f },
-                              glm::vec3(keys[n - 1].mValue.x, keys[n - 1].mValue.y, keys[n - 1].mValue.z));
-    }
-
-    aiVectorKey anchor;
-    anchor.mTime = ticks;
-    auto right_ptr = std::upper_bound(keys, keys + n, anchor, [] (const aiVectorKey &a, const aiVectorKey &b) {
-        return a.mTime < b.mTime;
-    });
-    auto left_ptr = right_ptr - 1;
-    
-    float factor = (ticks - left_ptr->mTime) / (right_ptr->mTime - left_ptr->mTime);
-
-    static aiVector3D interpolated = left_ptr->mValue * (1.0f - factor) + right_ptr->mValue * factor;
-    return glm::translate(glm::mat4{ 1.0f }, glm::vec3(interpolated.x, interpolated.y, interpolated.z));
 }
 
 glm::mat4 Model::interpolate_rotation(aiQuatKey* keys, GLuint n, double ticks) {
@@ -246,13 +219,18 @@ glm::mat4 Model::interpolate_scaling(aiVectorKey* keys, GLuint n, double ticks) 
 void Model::update_bone_matrices(int animation_id, aiNode* node, const glm::mat4& transform, double ticks) {
     std::string node_name = node->mName.C_Str();
     auto animation = scene->mAnimations[animation_id];
+
+    auto& animation2 = animations[animation_id];
     glm::mat4 current_transform;
     if (anim_channels.count(std::tuple<GLuint, std::string>(animation_id, node_name))) {
         GLuint channel_id = anim_channels[std::tuple<GLuint, std::string>(animation_id, node_name)];
         auto channel = animation->mChannels[channel_id];
-    
+
+        auto channel2 = animation2.channels[channel_id];
+
+        glm::mat4 translation_matrix = interpolate_translation(channel2.keyframes_position, ticks);
         // translation matrix
-        glm::mat4 translation_matrix = interpolate_translation(channel->mPositionKeys, channel->mNumPositionKeys, ticks);
+        //glm::mat4 translation_matrix = interpolate_translation(channel->mPositionKeys, channel->mNumPositionKeys, ticks);
         // rotation matrix
         glm::mat4 rotation_matrix = interpolate_rotation(channel->mRotationKeys, channel->mNumRotationKeys, ticks);
         // scaling matrix
@@ -295,4 +273,36 @@ void Model::draw(const Shader& shader){
     for (const auto& mesh: meshes) {
         mesh->draw(shader);
     }
+}
+
+glm::mat4 Model::interpolate_translation(const std::vector<KeyFramePos>& keys, double ticks){
+    if (keys.empty()) {
+        return glm::mat4{ 1.0f };
+    }
+    if (keys.size() == 1 || ticks <= keys[0].time){
+        return glm::translate( glm::mat4{ 1.0f }, keys[0].vec );
+    }
+    if (keys.back().time <= ticks){
+        return glm::translate(glm::mat4{ 1.0f }, keys.back().vec);
+    }
+
+    KeyFramePos anchor;
+    anchor.time = ticks;
+    auto right_ptr = std::upper_bound(keys.begin(), keys.end(), anchor, [] (const KeyFramePos &a, const KeyFramePos &b) {
+        return a.time < b.time;
+    });
+    auto left_ptr = right_ptr - 1;
+
+    float factor = (ticks - left_ptr->time) / (right_ptr->time - left_ptr->time);
+
+    static glm::vec3 interpolated = left_ptr->vec * (1.0f - factor) + right_ptr->vec * factor;
+    return glm::translate(glm::mat4{ 1.0f }, interpolated);
+}
+
+glm::mat4 Model::interpolate_rotation2(const std::vector<KeyFrameRot>& keys, double ticks){
+    return glm::mat4();
+}
+
+glm::mat4 Model::interpolate_scaling2(const std::vector<KeyFrameScale>& keys, double ticks){
+    return glm::mat4();
 }
