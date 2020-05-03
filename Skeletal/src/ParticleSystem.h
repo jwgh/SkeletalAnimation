@@ -5,10 +5,10 @@
 #include <glm/glm.hpp>
 
 struct Particle {
-	float lifetime;
-	float life_length;
-	glm::vec3 velocity;
-	glm::vec3 pos;
+	float lifetime    { 0.0f };
+	float life_length { 5.0f };
+	glm::vec3 velocity{ 0.0f };
+	glm::vec3 pos     { 0.0f };
 };
 
 using ReducedParticle = glm::vec4;

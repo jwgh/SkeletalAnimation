@@ -174,14 +174,14 @@ int main(int argc, char* argv[]) {
             glm::vec3 result{0.0f};
             static std::random_device rd;
             static std::mt19937 gen(rd());
-            static std::uniform_real_distribution<> dist(0.0f, 1.0f);
+            static std::uniform_real_distribution<> dist(-1.0f, 1.0f);
             result.x = dist(gen);
             result.y = dist(gen);
             result.z = dist(gen);
             return glm::normalize(result);
         };
 
-
+        particle_system.process_particles(dt);
         unsigned int active_particles = particle_system.particles.size();
         std::vector<glm::vec4> data;
         data.resize(active_particles);
