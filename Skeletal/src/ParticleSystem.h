@@ -19,16 +19,18 @@ class ParticleSystem {
 	std::vector<Particle> particles;
 	std::vector<ReducedParticle> reduced_particles;
 	int max_size;
-	ParticleSystem() : max_size(1000) {
-	    particles.resize(1000);
-	    reduced_particles.resize(1000);
+	ParticleSystem() = delete;
+
+	explicit ParticleSystem(int size) : max_size(size) {
+        particles.resize(max_size);
+        reduced_particles.resize(max_size);
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &VBO);
         //glGenBuffers(1, &EBO);
         glBindVertexArray(VAO);
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-                                                                                    // nullptr
+        // nullptr
         glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * max_size, nullptr, GL_STATIC_DRAW);
 
         glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
@@ -37,8 +39,7 @@ class ParticleSystem {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         glBindVertexArray(0);
-    }
-	explicit ParticleSystem(int size) : max_size(size) {}
+	}
 	~ParticleSystem() {}
 	// Methods
 	void kill(int id);

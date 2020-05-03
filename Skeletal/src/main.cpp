@@ -159,7 +159,26 @@ int main(int argc, char* argv[]) {
     double dt{ 0.0 };
 
 
-    ParticleSystem particle_system;
+    ParticleSystem particle_system(10000);
+
+    static auto unit_sphere_rand_point= []() -> glm::vec3{
+        glm::vec3 result{0.0f};
+        static std::random_device rd;
+        static std::mt19937 gen(rd());
+        static std::uniform_real_distribution<> dist(-1.0f, 1.0f);
+        result.x = dist(gen);
+        result.y = dist(gen);
+        result.z = dist(gen);
+        return glm::normalize(result);
+    };
+    /*for(auto& p : particle_system.particles){
+        p.pos = glm::vec4(100.0f * unit_sphere_rand_point(), 1.0f);
+        //std::cout << "[" << dp.x << ", " << dp.y << ", " << dp.z << "]" << std::endl;
+    }*/
+
+    for(int i = 0; i < particle_system.particles.size(); i++){
+        particle_system.kill(i);
+    }
 
     while (!glfwWindowShouldClose(window)) {
         current_time = glfwGetTime();
@@ -170,17 +189,15 @@ int main(int argc, char* argv[]) {
         process_input(dt);
 
 
-        static auto unit_sphere_rand_point= []() -> glm::vec3{
-            glm::vec3 result{0.0f};
-            static std::random_device rd;
-            static std::mt19937 gen(rd());
-            static std::uniform_real_distribution<> dist(-1.0f, 1.0f);
-            result.x = dist(gen);
-            result.y = dist(gen);
-            result.z = dist(gen);
-            return glm::normalize(result);
-        };
 
+
+        for(auto i{0}; i < 64; i++){
+            static auto p = Particle();
+            p.pos = unit_sphere_rand_point() * 10.0f;
+            p.velocity = unit_sphere_rand_point() * 10.0f;
+            p.velocity += glm::vec3(0.0f, 25.0f, 0.0f);
+            particle_system.spawn(p);
+        }
         particle_system.process_particles(dt);
         unsigned int active_particles = particle_system.particles.size();
         std::vector<glm::vec4> data;
@@ -192,10 +209,7 @@ int main(int argc, char* argv[]) {
             data[i].w = particle_system.particles[i].lifetime;
         }
 
-        for(auto& dp : data){
-            dp = glm::vec4(100.0f * unit_sphere_rand_point(), 1.0f);
-            //std::cout << "[" << dp.x << ", " << dp.y << ", " << dp.z << "]" << std::endl;
-        }
+
 
         std::sort(data.begin(), std::next(data.begin(), active_particles),
                   [](const glm::vec4 &lhs, const glm::vec4 &rhs){ return lhs.z < rhs.z; });

@@ -21,5 +21,7 @@ void ParticleSystem::process_particles(float dt){
     }
     for(auto& p : particles){
         p.lifetime += dt;
+        p.velocity.y -= 0.0987f;
+        p.pos += dt * p.velocity;
     }
 }
