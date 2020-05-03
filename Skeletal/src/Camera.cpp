@@ -98,7 +98,7 @@ void Camera::updateCameraVectors()
 }
 
 const glm::mat4 Camera::get_proj_matrix() const{
-    return glm::perspective(glm::radians(45.0f), 1.0f * (float) wh_ratio, 0.1f, 1000.0f);
+    return glm::perspective(glm::radians(45.0f), 1.0f * (float) wh_ratio, 0.1f, 100000.0f);
 }
 
 void Camera::update_ratio(uint32_t w, uint32_t h){
