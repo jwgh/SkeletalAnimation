@@ -76,9 +76,16 @@ public:
     Model() = delete;
     Model(const std::filesystem::path& path);
     ~Model();
+
+    void update(double dt);
     void draw(const Shader& shader);
     void draw(GLuint animation_id, const Shader& shader, double time);
-    
+
+    glm::mat4 M{ 1.0f };
+    glm::mat4 T{ 1.0f };
+    glm::mat4 R{ 1.0f };
+    glm::mat4 S{ 1.0f };
+
 private:
     std::shared_ptr<Node> initNode(aiNode* ai_node, std::shared_ptr<Node> new_node);
     void update_bone_matrices(int animation_ID, std::shared_ptr<Node> node, const glm::mat4& transform, double ticks);
@@ -86,6 +93,8 @@ private:
     static glm::mat4 interpolate_translation (const std::vector<KeyFramePos>& keys, double ticks);
     static glm::mat4 interpolate_rotation    (const std::vector<KeyFrameRot>& keys, double ticks);
     static glm::mat4 interpolate_scaling     (const std::vector<KeyFrameScale>& keys, double ticks);
+
+
 
 
     std::map<std::string, GLuint> bone_map;

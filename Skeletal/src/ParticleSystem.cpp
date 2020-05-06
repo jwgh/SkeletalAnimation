@@ -4,6 +4,11 @@
 ParticleSystem::ParticleSystem(std::shared_ptr<Shader> shader, int size) : shader{ shader }, max_size(size) {
     particles.resize(max_size);
     reduced_particles.resize(max_size);
+
+    for(auto i{ 0 }; i < particles.size(); i++){
+        kill(i);
+    }
+
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glBindVertexArray(VAO);

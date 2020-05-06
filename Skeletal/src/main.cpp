@@ -13,7 +13,6 @@
 
 #include "ParticleSystem.h"
 #include "TextureManager.h"
-#include "Ninja.h"
 
 std::bitset<512> keyboard_status{ 0 };
 
@@ -39,6 +38,11 @@ enum KEY{
     RALT = GLFW_KEY_RIGHT_ALT,
     ESC = GLFW_KEY_ESCAPE,
 
+    UP = GLFW_KEY_UP,
+    DOWN = GLFW_KEY_DOWN,
+    LEFT = GLFW_KEY_LEFT,
+    RIGHT = GLFW_KEY_RIGHT,
+
     RELEASE = GLFW_RELEASE
 };
 
@@ -49,7 +53,6 @@ std::shared_ptr<Shader> shader;
 std::shared_ptr<Shader> particle_shader;
 bool update_projection { true };
 GLuint smoke;
-Ninja ninja;
 
 void key_callback(GLFWwindow* window, int key, int, int action, int) {
     switch(key){
@@ -61,6 +64,10 @@ void key_callback(GLFWwindow* window, int key, int, int action, int) {
         case A: keyboard_status[KEY::A] = action!=RELEASE; break;
         case W: keyboard_status[KEY::W] = action!=RELEASE; break;
         case R: keyboard_status[KEY::R] = action!=RELEASE; break;
+        case UP: keyboard_status[KEY::UP] = action!=RELEASE; break;
+        case DOWN: keyboard_status[KEY::DOWN] = action!=RELEASE; break;
+        case LEFT: keyboard_status[KEY::LEFT] = action!=RELEASE; break;
+        case RIGHT: keyboard_status[KEY::RIGHT] = action!=RELEASE; break;
         case ESC: keyboard_status[KEY::ESC] = action!=RELEASE; break;
         case LALT: keyboard_status[KEY::LALT] = action!=RELEASE; break;
         case RALT: keyboard_status[KEY::RALT] = action!=RELEASE; break;
@@ -149,6 +156,12 @@ void process_input(double dt){
     if(keyboard_status[KEY::F]){
         camera->processKeyboard(Camera::Movement::RIGHT, dt * SPEED);
     }
+
+    if(keyboard_status[KEY::UP]){
+        model->T[3] += (float)SPEED * 10.0f * (float)dt * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+    }
+
+
     if(keyboard_status[KEY::LALT] || keyboard_status[KEY::RALT]){
         mouse_free = !mouse_free;
         auto cursor_status = mouse_free ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED;
@@ -165,16 +178,6 @@ int main(int argc, char* argv[]) {
 
     ParticleSystem particle_system(particle_shader, 10000);
 
-
-    /*for(auto& p : particle_system.particles){
-        p.pos = glm::vec4(100.0f * unit_sphere_rand_point(), 1.0f);
-        //std::cout << "[" << dp.x << ", " << dp.y << ", " << dp.z << "]" << std::endl;
-    }*/
-
-    for(int i = 0; i < particle_system.particles.size(); i++){
-        particle_system.kill(i);
-    }
-
     smoke = TextureManager::load_texture_from_file("../Resources/textures/smoke.png");
 
     while (!glfwWindowShouldClose(window)) {
@@ -185,13 +188,8 @@ int main(int argc, char* argv[]) {
         glfwPollEvents();
         process_input(dt);
 
-
-
-
         particle_system.update(dt);
-
-
-
+        model->update(dt);
         
         glClearColor(0.33, 0.66f, 0.16f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

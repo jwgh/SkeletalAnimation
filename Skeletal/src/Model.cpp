@@ -216,7 +216,8 @@ void Model::draw(GLuint animation_id, const Shader& shader, double time){
     double z = std::fmod(anim_time,anim_length);
     update_bone_matrices(animation_id, root, glm::mat4{ 1.0f }, z);
     shader.use();
-    shader.set_uniform_m4("u_M", glm::mat4{ 1.0f });
+
+    shader.set_uniform_m4("u_M", M);
     shader.set_uniform_m4s("u_bones", bone_matrices);
     
     for (const auto& mesh: meshes) {
@@ -224,10 +225,15 @@ void Model::draw(GLuint animation_id, const Shader& shader, double time){
     }
 }
 
+
+void Model::update(double dt){
+    M = T * R * S;
+}
+
 void Model::draw(const Shader& shader){
     std::fill(bone_matrices.begin(), bone_matrices.end(), glm::mat4(1));
     shader.use();
-    shader.set_uniform_m4("u_M", glm::mat4{ 1.0f });
+    shader.set_uniform_m4("u_M", M);
     shader.set_uniform_m4s("u_bones", bone_matrices);
     
     for (const auto& mesh: meshes) {
