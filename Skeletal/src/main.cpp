@@ -12,6 +12,7 @@
 #include "Camera.h"
 
 #include "ParticleSystem.h"
+#include "TextureManager.h"
 
 std::bitset<512> keyboard_status{ 0 };
 
@@ -46,6 +47,7 @@ std::shared_ptr<Camera> camera;
 std::shared_ptr<Shader> shader;
 std::shared_ptr<Shader> particle_shader;
 bool update_projection { true };
+GLuint smoke;
 
 void key_callback(GLFWwindow* window, int key, int, int action, int) {
     switch(key){
@@ -180,6 +182,8 @@ int main(int argc, char* argv[]) {
         particle_system.kill(i);
     }
 
+    smoke = TextureManager::load_texture_from_file("../Resources/textures/smoke.png");
+
     while (!glfwWindowShouldClose(window)) {
         current_time = glfwGetTime();
         dt = current_time - last_time;
@@ -194,8 +198,8 @@ int main(int argc, char* argv[]) {
         for(auto i{0}; i < 64; i++){
             static auto p = Particle();
             p.pos = unit_sphere_rand_point() * 10.0f;
-            p.velocity = unit_sphere_rand_point() * 10.0f;
-            p.velocity += glm::vec3(0.0f, 25.0f, 0.0f);
+            p.velocity = unit_sphere_rand_point() * 25.0f;
+            p.velocity += glm::vec3(0.0f, 75.0f, 0.0f);
             particle_system.spawn(p);
         }
         particle_system.process_particles(dt);
@@ -218,7 +222,7 @@ int main(int argc, char* argv[]) {
 
         glBindBuffer(GL_ARRAY_BUFFER, particle_system.VBO);
 
-        std::cout << "VAO / VBO: " << particle_system.VAO << " / " << particle_system.VBO << std::endl;
+        //std::cout << "VAO / VBO: " << particle_system.VAO << " / " << particle_system.VBO << std::endl;
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec4)*active_particles, data.data());
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -228,7 +232,7 @@ int main(int argc, char* argv[]) {
 
 
         
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClearColor(0.66f, 0.66f, 0.66f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shader->use();
@@ -243,6 +247,11 @@ int main(int argc, char* argv[]) {
 
         glBindVertexArray(particle_system.VAO);
         particle_shader->use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, smoke);
+        particle_shader->set_uniform_i("colortexture", 0);
+        particle_shader->set_uniform_f("screen_x", static_cast<float>(width));
+        particle_shader->set_uniform_f("screen_y", static_cast<float>(height));
         particle_shader->set_uniform_m4("M", glm::mat4{1.0f});
         particle_shader->set_uniform_m4("V", camera->get_view_matrix());
         particle_shader->set_uniform_m4("P", camera->get_proj_matrix());

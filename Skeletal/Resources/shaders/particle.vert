@@ -10,7 +10,7 @@ out float life;
 void main()
 {
     gl_Position = P*V*vec4(particle.xyz, 1);
-    //life = particle.w;
+    life = particle.w;
     // Particle is already in view space.    
     //vec4 particle_vs = vec4(particle.xyz, 1.0);
     // Calculate one projected corner of a quad at the particles view space depth.
@@ -23,5 +23,5 @@ void main()
     //gl_Position  = P * particle_vs;
     // Scale the point with regard to the previosly defined scale_factor
     // and the life (it will get larger the older it is)
-    gl_PointSize = 5.0f;
+    gl_PointSize = 100.0f;
 }

@@ -6,7 +6,7 @@
 
 struct Particle {
 	float lifetime    { 0.0f };
-	float life_length { 5.0f };
+	float life_length { 10.0f };
 	glm::vec3 velocity{ 0.0f };
 	glm::vec3 pos     { 0.0f };
 };

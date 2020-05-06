@@ -20,24 +20,14 @@ GLuint TextureManager::load_texture_from_file(const std::filesystem::path& path)
         return loaded_textures[path.c_str()];
     }
 
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
     int w, h, num_components;
     unsigned char* image_data = stbi_load(path.c_str(), &w, &h, &num_components, 0);
     if (image_data == nullptr) {
         std::cout << "Unable to load texture: " << path.c_str() << std::endl;
     }
-    
-    glGenTextures(1, &texture);
-    
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-
     switch(num_components){
         case 3:
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
@@ -47,13 +37,26 @@ GLuint TextureManager::load_texture_from_file(const std::filesystem::path& path)
             break;
         default:
             // unknown format
+            std::cout << "???" << std::endl;
             break;
     }
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+
 
     glBindTexture(GL_TEXTURE_2D, 0);
     
     stbi_image_free(image_data);
-    return loaded_textures[path.c_str()] = texture;
+    loaded_textures[path.c_str()] = texture;
+    std::cout << "from file: " << path.c_str() << ", " << texture << std::endl;
+    return texture;
 }
 
 GLuint TextureManager::load_texture_from_memory(const aiTexture* in_texture){
@@ -62,6 +65,9 @@ GLuint TextureManager::load_texture_from_memory(const aiTexture* in_texture){
     if (loaded_textures.count(in_texture->mFilename.C_Str())) {
         return loaded_textures[in_texture->mFilename.C_Str()];
     }
+
+    glGenTextures(1, &new_texture);
+    glBindTexture(GL_TEXTURE_2D, new_texture);
 
     unsigned char* image_data{ nullptr };
     int w, h, num_components;
@@ -86,5 +92,6 @@ GLuint TextureManager::load_texture_from_memory(const aiTexture* in_texture){
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
     glBindTexture(GL_TEXTURE_2D, 0);
+    std::cout << "from memory: " << in_texture->mFilename.C_Str() << ", " << new_texture << std::endl;
     return new_texture;
 }
