@@ -3,6 +3,8 @@
 #include <glad/glad.h>
 #include <vector>
 #include <glm/glm.hpp>
+#include "Shader.h"
+#include "Camera.h"
 
 struct Particle {
 	float lifetime    { 0.0f };
@@ -21,32 +23,17 @@ class ParticleSystem {
 	int max_size;
 	ParticleSystem() = delete;
 
-	explicit ParticleSystem(int size) : max_size(size) {
-        particles.resize(max_size);
-        reduced_particles.resize(max_size);
-        glGenVertexArrays(1, &VAO);
-        glGenBuffers(1, &VBO);
-        //glGenBuffers(1, &EBO);
-        glBindVertexArray(VAO);
-
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        // nullptr
-        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * max_size, nullptr, GL_STATIC_DRAW);
-
-        glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        glBindVertexArray(0);
-	}
+	ParticleSystem(std::shared_ptr<Shader> shader, int size);
 	~ParticleSystem() {}
 	// Methods
 	void kill(int id);
 	void spawn(Particle& particle);
 	void process_particles(float dt);
+	void update(double dt);
+	void draw(GLuint texture, GLuint w, GLuint h, const std::shared_ptr<Camera>& camera);
 
 	GLuint VAO, VBO, EBO;
+	std::shared_ptr<Shader> shader;
 };
 
 #endif //SKELETAL_MODEL_H

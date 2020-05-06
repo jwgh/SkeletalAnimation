@@ -13,6 +13,7 @@
 
 #include "ParticleSystem.h"
 #include "TextureManager.h"
+#include "Ninja.h"
 
 std::bitset<512> keyboard_status{ 0 };
 
@@ -48,6 +49,7 @@ std::shared_ptr<Shader> shader;
 std::shared_ptr<Shader> particle_shader;
 bool update_projection { true };
 GLuint smoke;
+Ninja ninja;
 
 void key_callback(GLFWwindow* window, int key, int, int action, int) {
     switch(key){
@@ -161,18 +163,9 @@ int main(int argc, char* argv[]) {
     double dt{ 0.0 };
 
 
-    ParticleSystem particle_system(10000);
+    ParticleSystem particle_system(particle_shader, 10000);
 
-    static auto unit_sphere_rand_point= []() -> glm::vec3{
-        glm::vec3 result{0.0f};
-        static std::random_device rd;
-        static std::mt19937 gen(rd());
-        static std::uniform_real_distribution<> dist(-1.0f, 1.0f);
-        result.x = dist(gen);
-        result.y = dist(gen);
-        result.z = dist(gen);
-        return glm::normalize(result);
-    };
+
     /*for(auto& p : particle_system.particles){
         p.pos = glm::vec4(100.0f * unit_sphere_rand_point(), 1.0f);
         //std::cout << "[" << dp.x << ", " << dp.y << ", " << dp.z << "]" << std::endl;
@@ -195,44 +188,12 @@ int main(int argc, char* argv[]) {
 
 
 
-        for(auto i{0}; i < 64; i++){
-            static auto p = Particle();
-            p.pos = unit_sphere_rand_point() * 10.0f;
-            p.velocity = unit_sphere_rand_point() * 25.0f;
-            p.velocity += glm::vec3(0.0f, 75.0f, 0.0f);
-            particle_system.spawn(p);
-        }
-        particle_system.process_particles(dt);
-        unsigned int active_particles = particle_system.particles.size();
-        std::vector<glm::vec4> data;
-        data.resize(active_particles);
-        for(auto i{0}; i < active_particles; i++){
-            data[i].x = particle_system.particles[i].pos.x;
-            data[i].y = particle_system.particles[i].pos.y;
-            data[i].z = particle_system.particles[i].pos.z;
-            data[i].w = particle_system.particles[i].lifetime;
-        }
-
-
-
-        std::sort(data.begin(), std::next(data.begin(), active_particles),
-                  [](const glm::vec4 &lhs, const glm::vec4 &rhs){ return lhs.z < rhs.z; });
-
-        glBindVertexArray(particle_system.VAO);
-
-        glBindBuffer(GL_ARRAY_BUFFER, particle_system.VBO);
-
-        //std::cout << "VAO / VBO: " << particle_system.VAO << " / " << particle_system.VBO << std::endl;
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec4)*active_particles, data.data());
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        glBindVertexArray(0);
+        particle_system.update(dt);
 
 
 
         
-        glClearColor(0.66f, 0.66f, 0.66f, 1.0f);
+        glClearColor(0.33, 0.66f, 0.16f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shader->use();
@@ -245,18 +206,7 @@ int main(int argc, char* argv[]) {
         model->draw(0, *shader, current_time);
         //model->draw(*shader);
 
-        glBindVertexArray(particle_system.VAO);
-        particle_shader->use();
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, smoke);
-        particle_shader->set_uniform_i("colortexture", 0);
-        particle_shader->set_uniform_f("screen_x", static_cast<float>(width));
-        particle_shader->set_uniform_f("screen_y", static_cast<float>(height));
-        particle_shader->set_uniform_m4("M", glm::mat4{1.0f});
-        particle_shader->set_uniform_m4("V", camera->get_view_matrix());
-        particle_shader->set_uniform_m4("P", camera->get_proj_matrix());
-        glDrawArrays(GL_POINTS, 0, data.size());
-        glBindVertexArray(0);
+        particle_system.draw(smoke, width, height, camera);
         
         glfwSwapBuffers(window);
     }
