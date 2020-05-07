@@ -73,18 +73,31 @@ public:
 
 class Model {
 public:
+    enum class Movement{
+        FORWARD,
+        BACKWARD,
+        TURN_LEFT,
+        STRAFT_LEFT,
+        TURN_RIGHT,
+        STRAFE_RIGHT
+    };
+
     Model() = delete;
     Model(const std::filesystem::path& path);
     ~Model();
 
+    void processMovement(Movement m, double dt);
+
     void update(double dt);
+
     void draw(const Shader& shader);
     void draw(GLuint animation_id, const Shader& shader, double time);
 
     glm::mat4 M{ 1.0f };
-    glm::mat4 T{ 1.0f };
-    glm::mat4 R{ 1.0f };
-    glm::mat4 S{ 1.0f };
+
+    glm::vec3 pos{ 0.0f };
+    float yaw{ 0.0f };
+    glm::quat orientation { 0.0f ,0.0f, 0.0f, -1.0f };
 
 private:
     std::shared_ptr<Node> initNode(aiNode* ai_node, std::shared_ptr<Node> new_node);
@@ -112,6 +125,8 @@ private:
     const aiScene* scene;
 
     std::shared_ptr<Node> root;
+
+
 };
 
 #endif //SKELETAL_MODEL_H

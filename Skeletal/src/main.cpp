@@ -158,7 +158,18 @@ void process_input(double dt){
     }
 
     if(keyboard_status[KEY::UP]){
-        model->T[3] += (float)SPEED * 10.0f * (float)dt * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+        model->processMovement(Model::Movement::FORWARD, dt);
+    }
+    if(keyboard_status[KEY::DOWN]){
+        model->processMovement(Model::Movement::BACKWARD, dt);
+    }
+    if(keyboard_status[KEY::LEFT]){
+        //model->processMovement(Model::Movement::STRAFT_LEFT, dt);
+        model->processMovement(Model::Movement::TURN_LEFT, dt);
+    }
+    if(keyboard_status[KEY::RIGHT]){
+        //model->processMovement(Model::Movement::STRAFE_RIGHT, dt);
+        model->processMovement(Model::Movement::TURN_RIGHT, dt);
     }
 
 
