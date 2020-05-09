@@ -20,6 +20,17 @@ void Mesh::draw(const Shader& shader) const {
     //glBindTexture(GL_TEXTURE_2D, normal0_ID);
     glBindTexture(GL_TEXTURE_2D, white_ID);
     shader.set_uniform_i("u_diffuse0", 0);
+
+    shader.set_uniform_v3("u_light.ambient", glm::vec3{0.3f, 0.3f, 0.3f});
+    shader.set_uniform_v3("u_light.diffuse", glm::vec3{0.6f, 0.6f, 0.6f});
+    shader.set_uniform_v3("u_light.specular", glm::vec3{1.0f, 1.0f, 1.0f});
+    shader.set_uniform_v3("u_light.position", glm::vec3{0.0f, -15.0f, 0.0f});
+
+    shader.set_uniform_v3("u_light_color", glm::vec3{1.0f, 1.0f, 0.0f});
+    shader.set_uniform_v3("u_material.ambient", glm::vec3{1.0f, 1.0f, 1.0f});
+    shader.set_uniform_v3("u_material.diffuse", glm::vec3{1.0f, 1.0f, 1.0f});
+    shader.set_uniform_v3("u_material.specular", glm::vec3{1.0f, 1.0f, 1.0f});
+    shader.set_uniform_f("u_material.shininess", 32.0f);
     
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, 0);
