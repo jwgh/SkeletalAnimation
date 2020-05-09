@@ -26,5 +26,5 @@ void main() {
     gl_Position = u_P * u_V * u_M * B * vec4(a_position, 1);
     v_worldPosition = vec3(u_M * B * vec4(a_position, 1));
     v_UV = a_UV;
-    v_normal = vec3(u_M * B * vec4(a_position, 0));
+    v_normal = vec3(transpose(inverse(u_M * B)) * vec4(a_position, 0)); // inverse is expensive and should probably be done on CPU
 }

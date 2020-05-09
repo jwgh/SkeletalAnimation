@@ -274,6 +274,8 @@ int main(int argc, char* argv[]) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shader->use();
+
+        shader->set_uniform_v3("u_cameraPos", camera->position);
         shader->set_uniform_m4("u_V", camera->get_view_matrix());
         if(update_projection){
             shader->set_uniform_m4("u_P", camera->get_proj_matrix());

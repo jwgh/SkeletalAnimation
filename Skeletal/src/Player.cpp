@@ -5,7 +5,7 @@
 #include "Player.h"
 
 void Player::processMovement(Player::Movement m, double dt){
-    float velocity = 50.0f * dt;
+    float velocity = 200.0f * dt;
 
     // quat mult rotation q*P*q^(-1)
     // get front by rotating original orientation with current orientation
@@ -31,11 +31,11 @@ void Player::processMovement(Player::Movement m, double dt){
     }
 
     if(m == Movement::TURN_LEFT){
-        yaw += 100*dt;
+        yaw += velocity;
     }
 
     if(m == Movement::TURN_RIGHT){
-        yaw -= 100*dt;
+        yaw -= velocity;
     }
 }
 
