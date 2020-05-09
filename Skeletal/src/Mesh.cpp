@@ -16,19 +16,24 @@ Mesh::~Mesh() {
 
 void Mesh::draw(const Shader& shader) const {
     glActiveTexture(GL_TEXTURE0);
-    //glBindTexture(GL_TEXTURE_2D, diffuse0_ID);
-    //glBindTexture(GL_TEXTURE_2D, normal0_ID);
-    glBindTexture(GL_TEXTURE_2D, white_ID);
-    shader.set_uniform_i("u_diffuse0", 0);
+    glBindTexture(GL_TEXTURE_2D, diffuse0_ID);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, normal0_ID);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, specular0_ID);
+
 
     shader.set_uniform_v3("u_light.ambient", glm::vec3{0.3f, 0.3f, 0.3f});
     shader.set_uniform_v3("u_light.diffuse", glm::vec3{0.6f, 0.6f, 0.6f});
     shader.set_uniform_v3("u_light.specular", glm::vec3{1.0f, 1.0f, 1.0f});
     shader.set_uniform_v3("u_light.position", glm::vec3{0.0f, -15.0f, 0.0f});
 
-    shader.set_uniform_v3("u_light_color", glm::vec3{1.0f, 1.0f, 0.0f});
-    shader.set_uniform_v3("u_material.ambient", glm::vec3{1.0f, 1.0f, 1.0f});
-    shader.set_uniform_v3("u_material.diffuse", glm::vec3{1.0f, 1.0f, 1.0f});
+    //shader.set_uniform_v3("u_light_color", glm::vec3{1.0f, 1.0f, 0.0f});
+    //shader.set_uniform_v3("u_material.ambient", glm::vec3{1.0f, 1.0f, 1.0f});
+    //shader.set_uniform_v3("u_material.diffuse", glm::vec3{1.0f, 1.0f, 1.0f});
+    shader.set_uniform_i("u_material.diffuse", 0);
+    shader.set_uniform_i("u_material.normal", 1);
+    shader.set_uniform_i("u_material.specular", 2);
     shader.set_uniform_v3("u_material.specular", glm::vec3{1.0f, 1.0f, 1.0f});
     shader.set_uniform_f("u_material.shininess", 32.0f);
     

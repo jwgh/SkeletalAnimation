@@ -137,7 +137,7 @@ std::shared_ptr<Node> Model::initNode(aiNode* ai_node, std::shared_ptr<Node> new
             new_mesh.normal0_ID = TextureManager::load_texture_from_memory(texture);
         } else {
             //regular file, check if it exists and read it
-            material->GetTexture(aiTextureType_HEIGHT, 0, &texture_file);
+            material->GetTexture(aiTextureType_HEIGHT, 0, &texture_file); // is this right?
             std::string item = texture_file.C_Str();
             int i = item.length() - 1;
             for (; i >= 0; i--){
@@ -149,6 +149,25 @@ std::shared_ptr<Node> Model::initNode(aiNode* ai_node, std::shared_ptr<Node> new
             std::filesystem::path path = dir_path;
             path /= item;
             new_mesh.normal0_ID = TextureManager::load_texture_from_file(path);
+        }
+        material->Get(AI_MATKEY_TEXTURE(aiTextureType_SPECULAR, 0), texture_file);
+        if(auto texture = scene->GetEmbeddedTexture(texture_file.C_Str())) {
+            //returned pointer is not null, read texture from memory
+            new_mesh.specular0_ID = TextureManager::load_texture_from_memory(texture);
+        } else {
+            //regular file, check if it exists and read it
+            material->GetTexture(aiTextureType_SPECULAR, 0, &texture_file);
+            std::string item = texture_file.C_Str();
+            int i = item.length() - 1;
+            for (; i >= 0; i--){
+                if(item[i] == '\\'){
+                    break;
+                }
+            }
+            item = item.substr(i + 1);
+            std::filesystem::path path = dir_path;
+            path /= item;
+            new_mesh.specular0_ID = TextureManager::load_texture_from_file(path);
         }
 
 
