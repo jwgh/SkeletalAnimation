@@ -15,6 +15,7 @@
 #include "TextureManager.h"
 
 std::bitset<512> keyboard_status{ 0 };
+std::bitset<512> keyboard_status_prev{ 0 };
 
 int width { 800 };
 int height{ 600 };
@@ -34,6 +35,9 @@ enum KEY{
     A = GLFW_KEY_A,
     W = GLFW_KEY_W,
     R = GLFW_KEY_R,
+    T = GLFW_KEY_T,
+
+    SPACE = GLFW_KEY_SPACE,
     LALT = GLFW_KEY_LEFT_ALT,
     RALT = GLFW_KEY_RIGHT_ALT,
     ESC = GLFW_KEY_ESCAPE,
@@ -64,6 +68,8 @@ void key_callback(GLFWwindow* window, int key, int, int action, int) {
         case A: keyboard_status[KEY::A] = action!=RELEASE; break;
         case W: keyboard_status[KEY::W] = action!=RELEASE; break;
         case R: keyboard_status[KEY::R] = action!=RELEASE; break;
+        case T: keyboard_status[KEY::T] = action!=RELEASE; break;
+        case SPACE: keyboard_status[KEY::SPACE] = action!=RELEASE; break;
         case UP: keyboard_status[KEY::UP] = action!=RELEASE; break;
         case DOWN: keyboard_status[KEY::DOWN] = action!=RELEASE; break;
         case LEFT: keyboard_status[KEY::LEFT] = action!=RELEASE; break;
@@ -172,12 +178,19 @@ void process_input(double dt){
         model->processMovement(Model::Movement::TURN_RIGHT, dt);
     }
 
+    if(keyboard_status[KEY::T]){
+    }
 
-    if(keyboard_status[KEY::LALT] || keyboard_status[KEY::RALT]){
+
+    if((keyboard_status[KEY::LALT] || keyboard_status[KEY::RALT]) && !(keyboard_status_prev[KEY::LALT] || keyboard_status_prev[KEY::RALT])){
         mouse_free = !mouse_free;
         auto cursor_status = mouse_free ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED;
         glfwSetInputMode(window, GLFW_CURSOR, cursor_status);
     }
+    if(keyboard_status[KEY::SPACE]&& !keyboard_status_prev[KEY::SPACE]){
+    }
+
+    keyboard_status_prev = keyboard_status;
 }
 
 int main(int argc, char* argv[]) {
