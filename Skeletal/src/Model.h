@@ -108,6 +108,8 @@ private:
     static glm::mat4 interpolate_scaling     (const std::vector<KeyFrameScale>& keys, double ticks);
 
 
+    GLuint white_texture;
+
 
 
     std::map<std::string, GLuint> bone_map;

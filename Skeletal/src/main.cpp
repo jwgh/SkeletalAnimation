@@ -244,7 +244,7 @@ int main(int argc, char* argv[]) {
     ParticleSystem particle_system(particle_shader, 10000);
 
     smoke = TextureManager::load_texture_from_file("../Resources/textures/smoke.png");
-    
+
     while (!glfwWindowShouldClose(window)) {
         current_time = glfwGetTime();
         dt = current_time - last_time;

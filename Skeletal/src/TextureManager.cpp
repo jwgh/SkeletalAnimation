@@ -95,3 +95,25 @@ GLuint TextureManager::load_texture_from_memory(const aiTexture* in_texture){
     std::cout << "from memory: " << in_texture->mFilename.C_Str() << ", " << new_texture << std::endl;
     return new_texture;
 }
+
+GLuint TextureManager::load_single_color_texture(unsigned char r, unsigned char g, unsigned char b){
+
+    GLuint new_texture;
+
+    glGenTextures(1, &new_texture);
+    glBindTexture(GL_TEXTURE_2D, new_texture);
+    const static GLubyte texData[] = { r, g, b, 255 };
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, texData);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    return new_texture;
+}

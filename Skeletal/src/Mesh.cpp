@@ -16,8 +16,10 @@ Mesh::~Mesh() {
 
 void Mesh::draw(const Shader& shader) const {
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, diffuse0_ID);
-    shader.set_uniform_i("u_diffuse0", 0); // texID?
+    //glBindTexture(GL_TEXTURE_2D, diffuse0_ID);
+    //glBindTexture(GL_TEXTURE_2D, normal0_ID);
+    glBindTexture(GL_TEXTURE_2D, white_ID);
+    shader.set_uniform_i("u_diffuse0", 0);
     
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, 0);
@@ -69,4 +71,7 @@ void Mesh::setup_VAO(const std::vector<Vertex>& vertices, const std::vector<GLui
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+
+    white_ID = TextureManager::load_single_color_texture(255, 255, 255);
 }

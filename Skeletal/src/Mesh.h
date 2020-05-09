@@ -36,6 +36,8 @@ public:
     GLuint VBO;
     GLuint EBO;
     GLuint diffuse0_ID;
+    GLuint normal0_ID;
+    GLuint white_ID;
     GLuint num_indices;
     GLuint num_vertices;
 

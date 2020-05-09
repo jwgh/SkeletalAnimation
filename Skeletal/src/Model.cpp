@@ -131,6 +131,26 @@ std::shared_ptr<Node> Model::initNode(aiNode* ai_node, std::shared_ptr<Node> new
             path /= item;
             new_mesh.diffuse0_ID = TextureManager::load_texture_from_file(path);
         }
+        material->Get(AI_MATKEY_TEXTURE(aiTextureType_NORMALS, 0), texture_file);
+        if(auto texture = scene->GetEmbeddedTexture(texture_file.C_Str())) {
+            //returned pointer is not null, read texture from memory
+            new_mesh.normal0_ID = TextureManager::load_texture_from_memory(texture);
+        } else {
+            //regular file, check if it exists and read it
+            material->GetTexture(aiTextureType_HEIGHT, 0, &texture_file);
+            std::string item = texture_file.C_Str();
+            int i = item.length() - 1;
+            for (; i >= 0; i--){
+                if(item[i] == '\\'){
+                    break;
+                }
+            }
+            item = item.substr(i + 1);
+            std::filesystem::path path = dir_path;
+            path /= item;
+            new_mesh.normal0_ID = TextureManager::load_texture_from_file(path);
+        }
+
 
         /** ... Get VERTEX info for the mesh... */
         for (auto v_idx{ 0 }; v_idx < mesh->mNumVertices; v_idx++) {
