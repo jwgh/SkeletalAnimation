@@ -73,31 +73,14 @@ public:
 
 class Model {
 public:
-    enum class Movement{
-        FORWARD,
-        BACKWARD,
-        TURN_LEFT,
-        STRAFT_LEFT,
-        TURN_RIGHT,
-        STRAFE_RIGHT
-    };
 
     Model() = delete;
     Model(const std::filesystem::path& path);
     ~Model();
 
-    void processMovement(Movement m, double dt);
-
-    void update(double dt);
 
     void draw(const Shader& shader);
     void draw(GLuint animation_id, const Shader& shader, double time);
-
-    glm::mat4 M{ 1.0f };
-
-    glm::vec3 pos{ 0.0f };
-    float yaw{ 0.0f };
-    glm::quat orientation { 0.0f ,0.0f, 0.0f, -1.0f };
 
 private:
     std::shared_ptr<Node> initNode(aiNode* ai_node, std::shared_ptr<Node> new_node);
@@ -106,11 +89,6 @@ private:
     static glm::mat4 interpolate_translation (const std::vector<KeyFramePos>& keys, double ticks);
     static glm::mat4 interpolate_rotation    (const std::vector<KeyFrameRot>& keys, double ticks);
     static glm::mat4 interpolate_scaling     (const std::vector<KeyFrameScale>& keys, double ticks);
-
-
-    GLuint white_texture;
-
-
 
     std::map<std::string, GLuint> bone_map;
     std::map<std::tuple<GLuint, std::string>, GLuint> anim_channels;

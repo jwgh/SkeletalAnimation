@@ -235,9 +235,7 @@ void Model::draw(GLuint animation_id, const Shader& shader, double time){
     auto anim_time = time * a.ticks_per_second;
     double z = std::fmod(anim_time,anim_length);
     update_bone_matrices(animation_id, root, glm::mat4{ 1.0f }, z);
-    shader.use();
 
-    shader.set_uniform_m4("u_M", M);
     shader.set_uniform_m4s("u_bones", bone_matrices);
     
     for (const auto& mesh: meshes) {
@@ -246,55 +244,8 @@ void Model::draw(GLuint animation_id, const Shader& shader, double time){
 }
 
 
-void Model::update(double dt){
-    static glm::mat4 T{ 1.0f };
-    T[3] = glm::vec4{pos, 1.0f };
-
-    glm::quat qYaw = glm::angleAxis(glm::radians(-yaw), glm::vec3(0, 1, 0));
-    orientation = qYaw;
-    
-    M = T * glm::mat4(orientation); // * R * S;
-}
-
-void Model::processMovement(Model::Movement m, double dt){
-    float velocity = 50.0f * dt;
-
-    // quat mult rotation q*P*q^(-1)
-    // get front by rotating original orientation with current orientation
-    glm::quat qF = orientation * glm::quat(0, 0, 0, -1) * glm::conjugate(orientation);
-    glm::vec3 front{ qF.x, qF.y, qF.z };
-    glm::vec3 right{glm::normalize(glm::cross(front, glm::vec3(0, 1, 0)))};
-
-
-    if(m == Movement::FORWARD){
-        pos -= front * velocity;
-    }
-
-    if(m == Movement::BACKWARD){
-        pos += front * velocity;
-    }
-
-    if(m == Movement::STRAFT_LEFT){
-        pos -= right * velocity;
-    }
-
-    if(m == Movement::STRAFE_RIGHT){
-        pos += right * velocity;
-    }
-
-    if(m == Movement::TURN_LEFT){
-        yaw += 100*dt;
-    }
-
-    if(m == Movement::TURN_RIGHT){
-        yaw -= 100*dt;
-    }
-}
-
 void Model::draw(const Shader& shader){
     std::fill(bone_matrices.begin(), bone_matrices.end(), glm::mat4(1));
-    shader.use();
-    shader.set_uniform_m4("u_M", M);
     shader.set_uniform_m4s("u_bones", bone_matrices);
     
     for (const auto& mesh: meshes) {

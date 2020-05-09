@@ -17,6 +17,7 @@
 
 #include "ParticleSystem.h"
 #include "TextureManager.h"
+#include "Player.h"
 
 std::bitset<512> keyboard_status{ 0 };
 std::bitset<512> keyboard_status_prev{ 0 };
@@ -55,7 +56,9 @@ enum KEY{
 };
 
 GLFWwindow* window;
-std::shared_ptr<Model> model;
+Player player;
+std::shared_ptr<Model> run;
+std::shared_ptr<Model> idle;
 std::shared_ptr<Camera> camera;
 std::shared_ptr<Shader> shader;
 std::shared_ptr<Shader> particle_shader;
@@ -143,7 +146,12 @@ void init() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
-    model = std::make_shared<Model>("../Resources/models/ninja/Run.fbx");
+    idle = std::make_shared<Model>("../Resources/models/ninja/Ninja Idle.fbx");
+    run = std::make_shared<Model>("../Resources/models/ninja/Run.fbx");
+    player.current_animation = idle.get();
+    player.idle = idle.get();
+    player.run = run.get();
+
     camera = std::make_shared<Camera>(glm::vec3{0.0f, 80.0f, 365.0f}, width, height);
     shader = std::make_shared<Shader>("../Resources/shaders/skeletal.vert", "../Resources/shaders/simple.frag");
     particle_shader = std::make_shared<Shader>("../Resources/shaders/particle.vert", "../Resources/shaders/particle.frag");
@@ -175,19 +183,24 @@ void process_input(double dt){
         camera->processKeyboard(Camera::Movement::RIGHT, dt * SPEED);
     }
 
+    player.current_animation = idle.get();
     if(keyboard_status[KEY::UP]){
-        model->processMovement(Model::Movement::FORWARD, dt);
+        player.processMovement(Player::Movement::FORWARD, dt);
+        player.current_animation = run.get();
     }
     if(keyboard_status[KEY::DOWN]){
-        model->processMovement(Model::Movement::BACKWARD, dt);
+        player.processMovement(Player::Movement::BACKWARD, dt);
+        player.current_animation = run.get();
     }
     if(keyboard_status[KEY::LEFT]){
         //model->processMovement(Model::Movement::STRAFT_LEFT, dt);
-        model->processMovement(Model::Movement::TURN_LEFT, dt);
+        player.processMovement(Player::Movement::TURN_LEFT, dt);
+        player.current_animation = run.get();
     }
     if(keyboard_status[KEY::RIGHT]){
         //model->processMovement(Model::Movement::STRAFE_RIGHT, dt);
-        model->processMovement(Model::Movement::TURN_RIGHT, dt);
+        player.processMovement(Player::Movement::TURN_RIGHT, dt);
+        player.current_animation = run.get();
     }
 
     if(keyboard_status[KEY::T]){
@@ -254,7 +267,7 @@ int main(int argc, char* argv[]) {
         process_input(dt);
 
         particle_system.update(dt);
-        model->update(dt);
+        player.update(dt);
         imgui_start_frame();
 
         glClearColor(col[0], col[1], col[2], 1.0f);
@@ -267,7 +280,7 @@ int main(int argc, char* argv[]) {
             update_projection = false;
         }
 
-        model->draw(0, *shader, current_time);
+        player.draw(0, *shader, current_time);
         //model->draw(*shader);
 
         particle_system.draw(smoke, width, height, camera);
