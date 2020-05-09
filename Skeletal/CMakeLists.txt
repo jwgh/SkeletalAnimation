@@ -14,10 +14,11 @@ file(GLOB_RECURSE IMGUI_SRC
         ${CMAKE_SOURCE_DIR}/External/imgui/*.cpp
         ${CMAKE_SOURCE_DIR}/External/stb_image/*.h
         )
+message(STATUS "imgui: ${IMGUI_SRC}")
 
 file(COPY Resources DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES} ${IMGUI_SRC_FILES})
+add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES} ${IMGUI_SRC})
 
 list(APPEND CMAKE_PREFIX_PATH /usr/local/Cellar)
 

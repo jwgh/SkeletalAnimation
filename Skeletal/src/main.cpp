@@ -3,6 +3,10 @@
 #include <bitset>
 #include <random>
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
@@ -143,6 +147,14 @@ void init() {
     camera = std::make_shared<Camera>(glm::vec3{0.0f, 80.0f, 365.0f}, width, height);
     shader = std::make_shared<Shader>("../Resources/shaders/skeletal.vert", "../Resources/shaders/simple.frag");
     particle_shader = std::make_shared<Shader>("../Resources/shaders/particle.vert", "../Resources/shaders/particle.frag");
+
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 150");
 }
 
 void process_input(double dt){
@@ -193,6 +205,35 @@ void process_input(double dt){
     keyboard_status_prev = keyboard_status;
 }
 
+bool test{ false };
+float col[3];
+void imgui_start_frame(){
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    static float f = 0.0f;
+    static int counter = 0;
+
+    ImGui::Begin("Hello, world!");
+
+    ImGui::Text("Adv Graphics Project");
+    ImGui::Checkbox("Imgui checkbox", &test);
+
+    ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+    ImGui::ColorEdit3("clear color", (float*)&col);
+
+    if (ImGui::Button("counter")){
+        counter++;
+    }
+    ImGui::SameLine();
+    ImGui::Text("counter = %d", counter);
+
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::End();
+
+    ImGui::Render();
+}
+
 int main(int argc, char* argv[]) {
     init();
     double last_time{ 0.0 };
@@ -203,7 +244,7 @@ int main(int argc, char* argv[]) {
     ParticleSystem particle_system(particle_shader, 10000);
 
     smoke = TextureManager::load_texture_from_file("../Resources/textures/smoke.png");
-
+    
     while (!glfwWindowShouldClose(window)) {
         current_time = glfwGetTime();
         dt = current_time - last_time;
@@ -214,8 +255,9 @@ int main(int argc, char* argv[]) {
 
         particle_system.update(dt);
         model->update(dt);
-        
-        glClearColor(0.33, 0.66f, 0.16f, 1.0f);
+        imgui_start_frame();
+
+        glClearColor(col[0], col[1], col[2], 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shader->use();
@@ -229,8 +271,13 @@ int main(int argc, char* argv[]) {
         //model->draw(*shader);
 
         particle_system.draw(smoke, width, height, camera);
-        
+
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
     }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
     return 0;
 }
