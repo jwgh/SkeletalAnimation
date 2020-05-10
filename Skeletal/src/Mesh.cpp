@@ -23,10 +23,11 @@ void Mesh::draw(const Shader& shader) const {
     glBindTexture(GL_TEXTURE_2D, specular0_ID);
 
 
-    shader.set_uniform_v3("u_light.ambient", glm::vec3{0.3f, 0.3f, 0.3f});
-    shader.set_uniform_v3("u_light.diffuse", glm::vec3{0.6f, 0.6f, 0.6f});
-    shader.set_uniform_v3("u_light.specular", glm::vec3{1.0f, 1.0f, 1.0f});
-    shader.set_uniform_v3("u_light.position", glm::vec3{0.0f, -15.0f, 0.0f});
+    shader.set_uniform_v3("u_light_sun.ambient", glm::vec3{0.3f, 0.3f, 0.3f});
+    shader.set_uniform_v3("u_light_sun.diffuse", glm::vec3{0.6f, 0.6f, 0.6f});
+    shader.set_uniform_v3("u_light_sun.specular", glm::vec3{1.0f, 1.0f, 1.0f});
+    shader.set_uniform_v3("u_light_sun.direction", glm::vec3{-0.3f, -1.0f, -0.3f});
+
 
     //shader.set_uniform_v3("u_light_color", glm::vec3{1.0f, 1.0f, 0.0f});
     //shader.set_uniform_v3("u_material.ambient", glm::vec3{1.0f, 1.0f, 1.0f});

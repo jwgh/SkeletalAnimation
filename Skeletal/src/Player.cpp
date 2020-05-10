@@ -3,9 +3,10 @@
 //
 
 #include "Player.h"
+#include "glm/gtc/matrix_transform.hpp"
 
 void Player::processMovement(Player::Movement m, double dt){
-    float velocity = 200.0f * dt;
+    float velocity = 50.0f * dt;
 
     // quat mult rotation q*P*q^(-1)
     // get front by rotating original orientation with current orientation
@@ -46,7 +47,8 @@ void Player::update(double dt){
     glm::quat qYaw = glm::angleAxis(glm::radians(-yaw), glm::vec3(0, 1, 0));
     orientation = qYaw;
 
-    M = T * glm::mat4(orientation); // * R * S;
+    glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f));
+    M = T * glm::mat4(orientation) * S; // * R * S;
 }
 
 void Player::draw(GLuint animation_id, const Shader& shader, double time){

@@ -9,7 +9,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 
-constexpr float DEFAULT_SPEED{10.0f};
+constexpr float DEFAULT_SPEED{5.0f};
 constexpr float DEFAULT_SENSITIVITY{0.5f};
 constexpr float DEFAULT_ZOOM{45.0f};
 

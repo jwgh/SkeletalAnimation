@@ -2,6 +2,9 @@
 #include <iostream>
 #include <bitset>
 #include <random>
+#include <chrono>
+#include <thread>
+
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -152,7 +155,7 @@ void init() {
     player.idle = idle.get();
     player.run = run.get();
 
-    camera = std::make_shared<Camera>(glm::vec3{0.0f, 80.0f, 365.0f}, width, height);
+    camera = std::make_shared<Camera>(glm::vec3{0.0f, 2.0f, 10.0f}, width, height);
     shader = std::make_shared<Shader>("../Resources/shaders/skeletal.vert", "../Resources/shaders/simple.frag");
     particle_shader = std::make_shared<Shader>("../Resources/shaders/particle.vert", "../Resources/shaders/particle.frag");
 
@@ -220,11 +223,14 @@ void process_input(double dt){
 
 bool test{ false };
 float col[3];
+float light_pos[3];
+float x = 0.0f;
+float y = 1.0f;
+float z = 0.0f;
 void imgui_start_frame(){
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-    static float f = 0.0f;
     static int counter = 0;
 
     ImGui::Begin("Hello, world!");
@@ -232,7 +238,9 @@ void imgui_start_frame(){
     ImGui::Text("Adv Graphics Project");
     ImGui::Checkbox("Imgui checkbox", &test);
 
-    ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+    ImGui::SliderFloat("x", &x, -100.0f, 100.0f);
+    ImGui::SliderFloat("y", &y, -100.0f, 100.0f);
+    ImGui::SliderFloat("z", &z, -100.0f, 100.0f);
     ImGui::ColorEdit3("clear color", (float*)&col);
 
     if (ImGui::Button("counter")){
@@ -275,6 +283,17 @@ int main(int argc, char* argv[]) {
 
         shader->use();
 
+
+        shader->set_uniform_v3("u_light_point.ambient", glm::vec3{0.3f, 0.3f, 0.3f});
+        shader->set_uniform_v3("u_light_point.diffuse", glm::vec3{0.6f, 0.6f, 0.6f});
+        shader->set_uniform_v3("u_light_point.specular", glm::vec3{1.0f, 1.0f, 1.0f});
+        shader->set_uniform_v3("u_light_point.position", glm::vec3{x, y, z});
+        shader->set_uniform_f("u_light_point.K_c", 1.0f);
+        shader->set_uniform_f("u_light_point.K_l", 0.007f);
+        shader->set_uniform_f("u_light_point.K_q", 0.0002f);
+
+
+
         shader->set_uniform_v3("u_cameraPos", camera->position);
         shader->set_uniform_m4("u_V", camera->get_view_matrix());
         if(update_projection){
@@ -289,6 +308,8 @@ int main(int argc, char* argv[]) {
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
 
     ImGui_ImplOpenGL3_Shutdown();
