@@ -7,10 +7,12 @@ layout (location = 3) in ivec4 a_bones0; // the fingers get weird with 4 or less
 layout (location = 4) in ivec4 a_bones1; // ... so 2 vectors of 4 are used instead. Now 8 bones can influence a vertex.
 layout (location = 5) in vec4 a_boneWeights0;
 layout (location = 6) in vec4 a_boneWeights1;
+layout (location = 7) in vec3 a_tangent;
 
 out vec3 v_worldPosition;
 out vec2 v_UV;
 out vec3 v_normal;
+out vec3 v_tangent;
 
 uniform mat4 u_M;
 uniform mat4 u_V;

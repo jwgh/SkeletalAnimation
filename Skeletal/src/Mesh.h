@@ -20,6 +20,7 @@ struct Vertex {
     glm::vec3 position;
     glm::vec2 tex_coord;
     glm::vec3 normal;
+    glm::vec3 tangent;
     int bone_ids[MAX_BONES] {0, 0, 0, 0, 0, 0, 0, 0};
     float bone_weights[MAX_BONES] {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 };

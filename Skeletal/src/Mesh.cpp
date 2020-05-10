@@ -81,6 +81,9 @@ void Mesh::setup_VAO(const std::vector<Vertex>& vertices, const std::vector<GLui
     glEnableVertexAttribArray(6);
     glVertexAttribPointer(6, 4, GL_FLOAT, false, sizeof(Vertex), (void *) (offsetof(Vertex, bone_weights) + 4 * sizeof(float)));
 
+    glEnableVertexAttribArray(7);
+    glVertexAttribPointer(7, 3, GL_FLOAT, false, sizeof(Vertex), (void *) offsetof(Vertex, tangent));
+
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);

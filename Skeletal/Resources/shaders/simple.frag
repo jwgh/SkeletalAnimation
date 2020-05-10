@@ -3,6 +3,9 @@
 in vec3 v_worldPosition;
 in vec2 v_UV;
 in vec3 v_normal;
+in vec3 v_tangent;
+in vec3 v_bitangent;
+in mat3 v_TBN;
 
 struct Material{
     sampler2D diffuse;

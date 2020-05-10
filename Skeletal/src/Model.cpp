@@ -177,6 +177,7 @@ std::shared_ptr<Node> Model::initNode(aiNode* ai_node, std::shared_ptr<Node> new
             v.position = glm::vec3(mesh->mVertices[v_idx].x, mesh->mVertices[v_idx].y, mesh->mVertices[v_idx].z);
             v.tex_coord = glm::vec2(mesh->mTextureCoords[0][v_idx].x, mesh->mTextureCoords[0][v_idx].y);
             v.normal = glm::vec3(mesh->mNormals[v_idx].x, mesh->mNormals[v_idx].y, mesh->mNormals[v_idx].z);
+            v.tangent = glm::vec3(mesh->mTangents[v_idx].x, mesh->mTangents[v_idx].y, mesh->mTangents[v_idx].z);
             vertices.push_back(v);
         }
 
