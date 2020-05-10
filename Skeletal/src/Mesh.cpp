@@ -31,6 +31,8 @@ void Mesh::draw(const Shader& shader) const {
     shader.set_uniform_i("u_material.specular", 2);
     shader.set_uniform_v3("u_material.specular", glm::vec3{1.0f, 1.0f, 1.0f});
     shader.set_uniform_f("u_material.shininess", 32.0f);
+
+    shader.set_uniform_i("u_normalMap0", 1);
     
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, 0);

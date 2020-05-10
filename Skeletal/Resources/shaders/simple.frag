@@ -29,6 +29,7 @@ struct Light_Point{
 };
 
 uniform sampler2D u_diffuse0;
+uniform sampler2D u_normalMap0;
 uniform vec3 u_cameraPos;
 uniform Material u_material;
 uniform Light_Dir u_light_sun;
@@ -77,7 +78,11 @@ vec3 calculate_point_light(Light_Point light, vec3 normal, vec3 world_pos, vec3 
 
 
 void main() {
-    vec3 norm = normalize(v_normal);
+    vec3 norm = texture(u_normalMap0, v_UV).rgb;
+    norm = normalize(norm * 2.0f -1.0f);
+
+
+    vec3 norm_from_mesh = normalize(v_normal);
     vec3 view_dir = normalize(u_cameraPos - v_worldPosition);
     // phase 1: Directional lighting
     vec3 result_light = calculate_directional(u_light_sun, norm, view_dir);
