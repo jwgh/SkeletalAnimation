@@ -41,8 +41,9 @@ vec3 calculate_directional(Light_Dir light, vec3 normal, vec3 view_dir){
     vec3 light_dir = normalize(-light.direction);
     float diff = max(dot(normal, light_dir), 0.0);
 
-    vec3 reflect_dir = reflect(-light_dir, normal);
-    float spec = pow(max(dot(view_dir, reflect_dir), 0.0), u_material.shininess);
+    //vec3 reflect_dir = reflect(-light_dir, normal);
+    vec3 halfway_dir = normalize(light_dir + view_dir);
+    float spec = pow(max(dot(normal, halfway_dir), 0.0), u_material.shininess);
     // combine results
     vec3 diff_texture = vec3(texture(u_material.diffuse, v_UV));
     vec3 ambient  = light.ambient  * diff_texture;
@@ -56,8 +57,9 @@ vec3 calculate_point_light(Light_Point light, vec3 normal, vec3 world_pos, vec3 
     // diffuse shading
     float diff = max(dot(normal, light_dir), 0.0);
     // specular shading
-    vec3 reflectDir = reflect(-light_dir, normal);
-    float spec = pow(max(dot(view_dir, reflectDir), 0.0), u_material.shininess);
+    //vec3 reflectDir = reflect(-light_dir, normal);
+    vec3 halfway_dir = normalize(light_dir + view_dir);
+    float spec = pow(max(dot(normal, halfway_dir), 0.0), u_material.shininess);
     // attenuation
     float distance    = length(light.position - world_pos);
     float attenuation = 1.0 / (light.K_c + light.K_l * distance +
