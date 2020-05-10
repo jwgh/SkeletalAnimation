@@ -17,7 +17,7 @@
 
 #include "Model.h"
 #include "Camera.h"
-
+#include "Light.h"
 #include "ParticleSystem.h"
 #include "TextureManager.h"
 #include "Player.h"
@@ -65,6 +65,8 @@ std::shared_ptr<Model> idle;
 std::shared_ptr<Camera> camera;
 std::shared_ptr<Shader> shader;
 std::shared_ptr<Shader> particle_shader;
+LightPoint point_light;
+LightDirectional sun;
 bool update_projection { true };
 GLuint smoke;
 
@@ -223,10 +225,6 @@ void process_input(double dt){
 
 bool test{ false };
 float col[3];
-float light_pos[3];
-float x = 0.0f;
-float y = 1.0f;
-float z = 0.0f;
 void imgui_start_frame(){
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -238,9 +236,9 @@ void imgui_start_frame(){
     ImGui::Text("Adv Graphics Project");
     ImGui::Checkbox("Imgui checkbox", &test);
 
-    ImGui::SliderFloat("x", &x, -100.0f, 100.0f);
-    ImGui::SliderFloat("y", &y, -100.0f, 100.0f);
-    ImGui::SliderFloat("z", &z, -100.0f, 100.0f);
+    ImGui::SliderFloat("x", &point_light.position.x, -100.0f, 100.0f);
+    ImGui::SliderFloat("y", &point_light.position.y, -100.0f, 100.0f);
+    ImGui::SliderFloat("z", &point_light.position.z, -100.0f, 100.0f);
     ImGui::ColorEdit3("clear color", (float*)&col);
 
     if (ImGui::Button("counter")){
@@ -284,13 +282,19 @@ int main(int argc, char* argv[]) {
         shader->use();
 
 
-        shader->set_uniform_v3("u_light_point.ambient", glm::vec3{0.3f, 0.3f, 0.3f});
-        shader->set_uniform_v3("u_light_point.diffuse", glm::vec3{0.6f, 0.6f, 0.6f});
-        shader->set_uniform_v3("u_light_point.specular", glm::vec3{1.0f, 1.0f, 1.0f});
-        shader->set_uniform_v3("u_light_point.position", glm::vec3{x, y, z});
-        shader->set_uniform_f("u_light_point.K_c", 1.0f);
-        shader->set_uniform_f("u_light_point.K_l", 0.007f);
-        shader->set_uniform_f("u_light_point.K_q", 0.0002f);
+        shader->set_uniform_v3("u_light_sun.ambient", sun.ambient);
+        shader->set_uniform_v3("u_light_sun.diffuse", sun.diffuse);
+        shader->set_uniform_v3("u_light_sun.specular", sun.specular);
+        shader->set_uniform_v3("u_light_sun.direction", sun.direction);
+
+
+        shader->set_uniform_v3("u_light_point.ambient", point_light.ambient);
+        shader->set_uniform_v3("u_light_point.diffuse", point_light.diffuse);
+        shader->set_uniform_v3("u_light_point.specular", point_light.specular);
+        shader->set_uniform_v3("u_light_point.position", point_light.position);
+        shader->set_uniform_f("u_light_point.K_c", point_light.K_c);
+        shader->set_uniform_f("u_light_point.K_l", point_light.K_l);
+        shader->set_uniform_f("u_light_point.K_q", point_light.K_q);
 
 
 
