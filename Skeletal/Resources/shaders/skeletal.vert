@@ -13,11 +13,18 @@ out vec3 v_worldPosition;
 out vec2 v_UV;
 out vec3 v_normal;
 out vec3 v_tangent;
+out vec3 v_tangentPosition;
+out vec3 v_tangent_lightPositions[4];
+out vec3 v_tangent_cameraPosition;
+out vec3 v_tangent_sunDir;
 
 uniform mat4 u_M;
 uniform mat4 u_V;
 uniform mat4 u_P;
 uniform mat4 u_bones[100];
+uniform vec3 u_lightPositions[4];
+uniform vec3 u_cameraPos;
+uniform vec3 u_sunDir;
 
 void main() {
     mat4 B = mat4(0.0f);
@@ -43,7 +50,7 @@ void main() {
 
     how TF am I supposed to handle directional light?
     */
-    /*
+
     mat3 normal_matrix = transpose(inverse(mat3(u_M * B)));
     vec3 tangent = normalize(normal_matrix * a_tangent);
     vec3 normal = normalize(normal_matrix * a_normal);
@@ -52,9 +59,12 @@ void main() {
 
     mat3 TBN = transpose(mat3(tangent, bitangent, normal));
 
-    //vs_out.TangentLightPos = TBN * lightPos;
-    vs_out.TangentViewPos  = TBN * viewPos;
-    vs_out.TangentFragPos  = TBN * vs_out.FragPos;
-    */
-    v_normal = vec3(transpose(inverse(u_M * B)) * vec4(a_position, 0)); // inverse is expensive and should probably be done on CPU
+    for(int i = 0; i < 4; i++){
+        v_tangent_lightPositions[i] = TBN * u_lightPositions[i];
+    }
+    //
+    v_tangent_cameraPosition  = TBN * u_cameraPos;
+    v_tangentPosition  = TBN * v_worldPosition;
+    v_tangent_sunDir = TBN * normalize(u_sunDir);
+    v_normal = normal; //vec3(transpose(inverse(u_M * B)) * vec4(a_position, 0)); // inverse is expensive and should probably be done on CPU
 }
