@@ -63,9 +63,9 @@ void ParticleSystem::update(double dt){
 
     for(auto i{0}; i < 64; i++){
         static auto p = Particle();
-        p.pos = unit_sphere_rand_point() * 10.0f;
-        p.velocity = unit_sphere_rand_point() * 25.0f;
-        p.velocity += glm::vec3(0.0f, 75.0f, 0.0f);
+        p.pos = unit_sphere_rand_point() * 5.0f;
+        p.velocity = unit_sphere_rand_point() * 5.0f;
+        p.velocity += glm::vec3(0.0f, 10.0f, 0.0f);
         spawn(p);
     }
     process_particles(dt);

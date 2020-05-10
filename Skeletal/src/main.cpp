@@ -288,13 +288,13 @@ int main(int argc, char* argv[]) {
         shader->set_uniform_v3("u_light_sun.direction", sun.direction);
 
 
-        shader->set_uniform_v3("u_light_point.ambient", point_light.ambient);
-        shader->set_uniform_v3("u_light_point.diffuse", point_light.diffuse);
-        shader->set_uniform_v3("u_light_point.specular", point_light.specular);
-        shader->set_uniform_v3("u_light_point.position", point_light.position);
-        shader->set_uniform_f("u_light_point.K_c", point_light.K_c);
-        shader->set_uniform_f("u_light_point.K_l", point_light.K_l);
-        shader->set_uniform_f("u_light_point.K_q", point_light.K_q);
+        shader->set_uniform_v3("u_light_point[0].ambient", point_light.ambient);
+        shader->set_uniform_v3("u_light_point[0]diffuse", point_light.diffuse);
+        shader->set_uniform_v3("u_light_point[0].specular", point_light.specular);
+        shader->set_uniform_v3("u_light_point[0].position", point_light.position);
+        shader->set_uniform_f("u_light_point[0].K_c", point_light.K_c);
+        shader->set_uniform_f("u_light_point[0].K_l", point_light.K_l);
+        shader->set_uniform_f("u_light_point[0].K_q", point_light.K_q);
 
 
 
