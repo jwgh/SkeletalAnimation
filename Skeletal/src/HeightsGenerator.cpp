@@ -6,10 +6,16 @@
 #include "HeightsGenerator.h"
 
 HeightsGenerator::HeightsGenerator() : seed{ 42 }{
-
 }
 
 float HeightsGenerator::generate_height(float x, float z){
+
+
+    auto gg = PerlinNoise::noise(x*0.25, 5.0, z*0.25);
+
+    return PerlinNoise::noise(x*0.0625, z*0.0625, 5.0*0.0625) * AMPLITUDE_MAJOR +
+            PerlinNoise::noise(x*0.125, z*0.125, 5.0*0.125) * AMPLITUDE_MIDDLE +
+            PerlinNoise::noise(x*0.25, z*0.25, 5.0*0.25) * AMPLITUDE_MINOR;
     return get_interpolated_noise(x * 0.125f, z * 0.125f) * AMPLITUDE_MAJOR +
             get_interpolated_noise(x * 0.25f, z * 0.25f) * AMPLITUDE_MINOR ;
 }

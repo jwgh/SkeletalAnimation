@@ -16,7 +16,7 @@ const vec3 G = vec3( 0.0f, 1.0f, 0.0f );
 const vec3 B = vec3( 0.0f, 0.0f, 1.0f );
 
 void main(){
-    float remapped_height = remap(6.0f, -6.0f, 1.0f, -1.0f, v_height);
+    float remapped_height = remap(12.0f, -12.0f, 1.0f, -1.0f, v_height);
 
     vec3 color = remapped_height > 0.0f
         ? mix(G, R, remap(1.0f, -1.0f, 0.5f, 0.0f, remapped_height))
