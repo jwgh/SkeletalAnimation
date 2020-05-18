@@ -2,9 +2,7 @@
 out vec4 fragColor;
 
 struct Light {
-//vec3 position;
     vec3 direction;
-
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
@@ -26,16 +24,15 @@ float remap( float old_max, float old_min, float new_max, float new_min, float c
     ? (((current_value - old_min) * (new_max - new_min)) / (old_max - old_min)) + new_min
     : (new_max + new_min) / 2.0f;
 }
-const vec3 R = vec3( 1.0f, 0.0f, 0.0f );
+const vec3 W = vec3( 1.0f );
+const vec3 R = vec3( 0.5f, 0.5f, 0.5f );
 const vec3 G = vec3( 0.0f, 1.0f, 0.0f );
 const vec3 B = vec3( 0.0f, 0.0f, 1.0f );
 
 void main(){
-    float remapped_height = remap(12.0f, -12.0f, 1.0f, -1.0f, v_height);
-
-    vec3 color = remapped_height > 0.0f
-        ? mix(G, R, remap(1.0f, -1.0f, 0.5f, 0.0f, remapped_height))
-        : mix(B, G, remap(1.0f, -1.0f, 1.0f, 0.5f, remapped_height));
+    vec3 color = mix(W, R, smoothstep(16.0f, 12.0f, v_height));
+    color = mix(R, G, smoothstep(12.0f, 0.0f, v_height));
+    color = mix(color, B, smoothstep(0.0f, -16.0f, v_height));
 
     vec3 ambient = u_light.ambient * color;
 
