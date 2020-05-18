@@ -6,11 +6,12 @@
 #define SKELETAL_TERRAIN_H
 
 #include "Shader.h"
+#include "HeightsGenerator.h"
 
 struct TerrainVertex{
-    float pos[3];
-    float normal[3];
-    float UV[2];
+    glm::vec3 pos;
+    glm::vec3 normal;
+    glm::vec2 UV;
 };
 
 struct RawModel{
@@ -37,6 +38,11 @@ private:
     RawModel model;
 
     RawModel generateTerrain();
+
+    HeightsGenerator heights_generator;
+
+    float get_height(int x, int z);
+    glm::vec3 calc_normal(int x, int z);
     //Texture texture;
 
 

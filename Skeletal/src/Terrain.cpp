@@ -20,11 +20,9 @@ RawModel Terrain::generateTerrain(){
     for(auto i{0}; i < VERTEX_COUNT; i++){
         for(auto j{0}; j < VERTEX_COUNT; j++){
             vertices[vert_ptr].pos[0] = static_cast<float>(j) / (static_cast<float>(VERTEX_COUNT - 1)) * SIZE;
-            vertices[vert_ptr].pos[1] = 0;
+            vertices[vert_ptr].pos[1] = get_height(i, j);
             vertices[vert_ptr].pos[2] = static_cast<float>(i) / (static_cast<float>(VERTEX_COUNT - 1)) * SIZE;
-            vertices[vert_ptr].normal[0] = 0;
-            vertices[vert_ptr].normal[1] = 1;
-            vertices[vert_ptr].normal[2] = 0;
+            vertices[vert_ptr].normal = calc_normal(i, j);
             vertices[vert_ptr].UV[0] = static_cast<float>(j) / (static_cast<float>(VERTEX_COUNT - 1));
             vertices[vert_ptr].UV[1] = static_cast<float>(i) / (static_cast<float>(VERTEX_COUNT - 1));
             vert_ptr++;
@@ -90,6 +88,18 @@ void Terrain::draw(Shader* shader){
     glBindVertexArray(0);
     glActiveTexture(GL_TEXTURE0);
 
+}
+
+float Terrain::get_height(int x, int z){
+    return heights_generator.generate_height(x, z);
+}
+
+glm::vec3 Terrain::calc_normal(int x, int z){
+    return glm::normalize(glm::vec3{
+        get_height(x-1, z) - get_height(x+1, z),
+        2.0f,
+        get_height(x, z-1) - get_height(x, z+1),
+    });
 }
 
 
