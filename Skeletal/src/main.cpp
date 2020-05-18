@@ -261,7 +261,10 @@ int main(int argc, char* argv[]) {
     double dt{ 0.0 };
 
     std::shared_ptr<Shader> terrain_shader = std::make_shared<Shader>("../Resources/shaders/terrain.vert", "../Resources/shaders/terrain.frag");
+
+    double PRE = glfwGetTime();
     Terrain terrain(0, 0); // 1, 1?
+    std::cout << "Generation time: " << glfwGetTime() - PRE;
 
 
     ParticleSystem particle_system(particle_shader, 10000);
