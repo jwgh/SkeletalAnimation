@@ -2,7 +2,7 @@
 #define SKELETAL_SHADER_H
 
 #include <string>
-
+#include <glm/glm.hpp>
 #include <filesystem>
 
 class Shader {

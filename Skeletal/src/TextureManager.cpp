@@ -102,9 +102,9 @@ GLuint TextureManager::load_single_color_texture(unsigned char r, unsigned char 
 
     glGenTextures(1, &new_texture);
     glBindTexture(GL_TEXTURE_2D, new_texture);
-    const static GLubyte texData[] = { r, g, b, 255 };
+    GLubyte texData[4] = { r, g, b, 255 };
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, texData);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &texData[0]);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);

@@ -5,6 +5,8 @@
 #ifndef SKELETAL_TERRAIN_H
 #define SKELETAL_TERRAIN_H
 
+#include "Shader.h"
+
 struct TerrainVertex{
     float pos[3];
     float normal[3];
@@ -14,6 +16,7 @@ struct TerrainVertex{
 struct RawModel{
     unsigned int VAO;
     unsigned int vertex_count;
+    unsigned int num_indices;
     unsigned int texture;
 };
 
@@ -24,6 +27,8 @@ public:
 
     Terrain() = delete;
     Terrain(unsigned int grid_x, unsigned int grid_z);
+
+    void draw(Shader* shader);
 
 private:
     double x;

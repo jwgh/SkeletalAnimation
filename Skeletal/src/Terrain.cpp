@@ -2,6 +2,7 @@
 // Created by Joakim Wingård on 2020-05-18.
 //
 #include <glad/glad.h>
+#include <iostream>
 #include "Terrain.h"
 #include "TextureManager.h"
 
@@ -11,7 +12,7 @@ Terrain::Terrain(unsigned int grid_x, unsigned int grid_z): x{ grid_x * SIZE }, 
 
 RawModel Terrain::generateTerrain(){
     static const unsigned int count{ VERTEX_COUNT * VERTEX_COUNT };
-    static const unsigned int indices_size{ 6 * (VERTEX_COUNT-1) * (VERTEX_COUNT - 1) };
+    static const unsigned int indices_size{ 6 * (VERTEX_COUNT-1) * (VERTEX_COUNT-1) };
     TerrainVertex vertices[count];
     unsigned int indices[indices_size];
     unsigned int vert_ptr{ 0 };
@@ -50,30 +51,45 @@ RawModel Terrain::generateTerrain(){
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
-    unsigned int EBO;
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices_size, indices, GL_STATIC_DRAW);
-
     unsigned int VBO;
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(TerrainVertex) * count, nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(TerrainVertex) * count, vertices, GL_STATIC_DRAW);
+
+    unsigned int EBO;
+    glGenBuffers(1, &EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices_size, &indices[0], GL_STATIC_DRAW);
+
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(TerrainVertex), (void *) __offsetof(TerrainVertex, pos));
+    glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(TerrainVertex), (void *) offsetof(TerrainVertex, pos));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof(TerrainVertex), (void *) __offsetof(TerrainVertex, UV));
+    glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof(TerrainVertex), (void *) offsetof(TerrainVertex, UV));
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, false, sizeof(TerrainVertex), (void *) __offsetof(TerrainVertex, normal));
+    glVertexAttribPointer(2, 3, GL_FLOAT, false, sizeof(TerrainVertex), (void *) offsetof(TerrainVertex, normal));
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-    GLuint texture_color = TextureManager::load_single_color_texture(55, 200, 55);
+    GLuint texture_color = TextureManager::load_single_color_texture(42, 120, 42);
 
-    return RawModel{VAO, count, texture_color};
+    std::cout << "texture:" << texture_color << std::endl;
+    return RawModel{VAO, count, indices_size, texture_color};
+}
+
+void Terrain::draw(Shader* shader){
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, model.texture);
+
+    shader->set_uniform_i("u_Diffuse0", 0);
+
+    glBindVertexArray(model.VAO);
+    glDrawElements(GL_TRIANGLES, model.num_indices, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+    glActiveTexture(GL_TEXTURE0);
+
 }
 
 

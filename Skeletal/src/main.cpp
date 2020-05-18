@@ -21,6 +21,7 @@
 #include "ParticleSystem.h"
 #include "TextureManager.h"
 #include "Player.h"
+#include "Terrain.h"
 
 std::bitset<512> keyboard_status{ 0 };
 std::bitset<512> keyboard_status_prev{ 0 };
@@ -259,6 +260,9 @@ int main(int argc, char* argv[]) {
     double current_time { 0.0 };
     double dt{ 0.0 };
 
+    std::shared_ptr<Shader> terrain_shader = std::make_shared<Shader>("../Resources/shaders/terrain.vert", "../Resources/shaders/terrain.frag");
+    Terrain terrain(0, 0); // 1, 1?
+
 
     ParticleSystem particle_system(particle_shader, 10000);
 
@@ -278,6 +282,14 @@ int main(int argc, char* argv[]) {
 
         glClearColor(col[0], col[1], col[2], 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        terrain_shader->use();
+
+        terrain_shader->set_uniform_m4("u_M", glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f)));
+        terrain_shader->set_uniform_m4("u_V", camera->get_view_matrix());
+        terrain_shader->set_uniform_m4("u_P", camera->get_proj_matrix());
+        terrain.draw(terrain_shader.get());
+
 
         shader->use();
 
