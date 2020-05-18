@@ -2,9 +2,10 @@
 out vec4 fragColor;
 
 in vec2 v_UV;
+in float v_height;
 
 uniform sampler2D u_Diffuse0;
 
 void main(){
-    fragColor = texture(u_Diffuse0, v_UV);
+    fragColor = vec4(normalize(vec3(v_height*0.5f, 0.5f, 0.5f)).xyz, 1.0f);
 }
