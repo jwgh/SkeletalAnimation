@@ -287,10 +287,14 @@ int main(int argc, char* argv[]) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         terrain_shader->use();
-
+        terrain_shader->set_uniform_v3("u_light.ambient", sun.ambient);
+        terrain_shader->set_uniform_v3("u_light.diffuse", sun.diffuse);
+        terrain_shader->set_uniform_v3("u_light.specular", sun.specular);
+        terrain_shader->set_uniform_v3("u_light.direction", sun.direction);
         terrain_shader->set_uniform_m4("u_M", glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f)));
         terrain_shader->set_uniform_m4("u_V", camera->get_view_matrix());
         terrain_shader->set_uniform_m4("u_P", camera->get_proj_matrix());
+        terrain_shader->set_uniform_v3("u_viewPos", camera->position);
         terrain.draw(terrain_shader.get());
 
 
