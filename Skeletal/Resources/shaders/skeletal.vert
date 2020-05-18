@@ -54,7 +54,7 @@ void main() {
     mat3 normal_matrix = transpose(inverse(mat3(u_M * B)));
     vec3 tangent = normalize(normal_matrix * a_tangent);
     vec3 normal = normalize(normal_matrix * a_normal);
-    tangent = normalize(tangent - dot(tangent, normal) * normal);
+    tangent = normalize(tangent - dot(tangent, normal) * normal); // re-orthogonalize, should SLIGHTLY improve result
     vec3 bitangent = cross(normal, tangent);
 
     mat3 TBN = transpose(mat3(tangent, bitangent, normal));
