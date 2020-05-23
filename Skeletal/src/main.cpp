@@ -22,6 +22,7 @@
 #include "TextureManager.h"
 #include "Player.h"
 #include "Terrain.h"
+#include "Sky.h"
 
 std::bitset<512> keyboard_status{ 0 };
 std::bitset<512> keyboard_status_prev{ 0 };
@@ -66,6 +67,7 @@ std::shared_ptr<Model> idle;
 std::shared_ptr<Camera> camera;
 std::shared_ptr<Shader> shader;
 std::shared_ptr<Shader> particle_shader;
+std::shared_ptr<Shader> skybox_shader;
 LightPoint point_light;
 LightDirectional sun;
 bool update_projection { true };
@@ -161,6 +163,7 @@ void init() {
     camera = std::make_shared<Camera>(glm::vec3{0.0f, 2.0f, 10.0f}, width, height);
     shader = std::make_shared<Shader>("../Resources/shaders/skeletal.vert", "../Resources/shaders/simple.frag");
     particle_shader = std::make_shared<Shader>("../Resources/shaders/particle.vert", "../Resources/shaders/particle.frag");
+    skybox_shader = std::make_shared<Shader>("../Resources/shaders/sky.vert", "../Resources/shaders/sky.frag");
 
 
     IMGUI_CHECKVERSION();
@@ -271,6 +274,8 @@ int main(int argc, char* argv[]) {
 
     smoke = TextureManager::load_texture_from_file("../Resources/textures/smoke.png");
 
+    Sky sky;
+
     while (!glfwWindowShouldClose(window)) {
         current_time = glfwGetTime();
         dt = current_time - last_time;
@@ -285,6 +290,8 @@ int main(int argc, char* argv[]) {
 
         glClearColor(col[0], col[1], col[2], 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
 
         terrain_shader->use();
         terrain_shader->set_uniform_v3("u_light.ambient", sun.ambient);
@@ -330,10 +337,33 @@ int main(int argc, char* argv[]) {
         player.draw(0, *shader, current_time);
         //model->draw(*shader);
 
+
         particle_system.draw(smoke, width, height, camera);
 
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
+        skybox_shader->use();
+        skybox_shader->set_uniform_i("u_skybox", 0);
+        skybox_shader->set_uniform_m4("u_V", camera->get_view_matrix());
+        skybox_shader->set_uniform_m4("u_P", camera->get_proj_matrix());
+        skybox_shader->set_uniform_m4("u_M", glm::scale(glm::mat4(1.0f), glm::vec3(10000.0f)));
+        // skybox cube
+        glBindVertexArray(sky.VAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, sky.texture);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+        glDepthFunc(GL_LESS); // set depth function back to default
         glfwSwapBuffers(window);
+
+
+
+
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+
+
+
 
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
