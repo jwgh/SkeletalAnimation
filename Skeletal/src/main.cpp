@@ -468,30 +468,36 @@ int main(int argc, char* argv[]) {
             deferred_shader->set_uniform_i("u_gNormal", 1);
             deferred_shader->set_uniform_i("u_gAlbedoSpec", 2);
 
+            /**
+             * Start with the Geometry pass
+             * In this pass we write to the g-buffer
+             * We write positions, normals, speculars and diffuse in this buffer
+             * so that we can use it in the lighting pass later
+             * That way each geometry render won't have to check each light source for each pixel
+             */
+            glDisable(GL_BLEND);
 
-            // GEOMETRY PASS
             glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glm::mat4 model = glm::mat4(1.0f);
             gbuffer_shader->use();
             gbuffer_shader->set_uniform_m4("u_P", camera->get_proj_matrix());
             gbuffer_shader->set_uniform_m4("u_V", camera->get_view_matrix());
-            for (unsigned int i = 0; i < objectPositions.size(); i++)
-            {
+            for(const auto& pos : objectPositions){
                 model = glm::mat4(1.0f);
-                model = glm::translate(model, objectPositions[i]);
+                model = glm::translate(model, pos);
                 model = glm::scale(model, glm::vec3(0.05f));
                 gbuffer_shader->set_uniform_m4("model", model);
                 player.draw(0, *gbuffer_shader, 0);
             }
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-
-
-
-
-            // 2. lighting pass: calculate lighting by iterating over a screen filled quad pixel-by-pixel using the gbuffer's content.
-            // -----------------------------------------------------------------------------------------------------------------------
+            /**
+             * Use the information stored in the G-buffer to render a screen filling quad with the scene
+             * The lighting is calculated here, only once per pixel.
+             */
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             deferred_shader->use();
             glActiveTexture(GL_TEXTURE0);
@@ -500,38 +506,37 @@ int main(int argc, char* argv[]) {
             glBindTexture(GL_TEXTURE_2D, gNormal);
             glActiveTexture(GL_TEXTURE2);
             glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
-            // send light relevant uniforms
-            for (unsigned int i = 0; i < lightPositions.size(); i++)
-            {
+            for(auto i{0}; i < lightPositions.size(); i++){
+                //std::cout << "lightPos: " << lightPositions[i].x << ", " << lightPositions[i].y << ", " << lightPositions[i].z << std::endl;
                 deferred_shader->set_uniform_v3("u_lights[" + std::to_string(i) + "].Position", lightPositions[i]);
                 deferred_shader->set_uniform_v3("u_lights[" + std::to_string(i) + "].Color", lightColors[i]);
                 // update attenuation parameters and calculate radius
-                const float linear = 0.02;
-                const float quadratic = 0.0019;
+                const float linear = 0.07;
+                const float quadratic = 0.017;
                 deferred_shader->set_uniform_f("u_lights[" + std::to_string(i) + "].Linear", linear);
                 deferred_shader->set_uniform_f("u_lights[" + std::to_string(i) + "].Quadratic", quadratic);
             }
             deferred_shader->set_uniform_v3("u_viewPos", camera->position);
-            // finally render quad
             renderQuad();
 
 
 
-            // 2.5. copy content of geometry's depth buffer to default framebuffer's depth buffer
-            // ----------------------------------------------------------------------------------
+            /**
+             * Copy the depth buffer from the G-Buffer to the default depth buffer so that we can use it later
+             * The width/height is *2 because otherwise it only fills 1/4 of my retina screen
+             *
+             * Render a colored box for the light sources to show their locations
+             * Since the depth buffer is copied, they shouls not cover everything
+             */
             glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
-            // blit to default framebuffer. Note that this may or may not work as the internal formats of both the FBO and default framebuffer have to match.
-            // the internal formats are implementation defined. This works on all of my systems, but if it doesn't on yours you'll likely have to write to the
-            // depth buffer in another shader stage (or somehow see to match the default framebuffer's internal format with the FBO's internal format).
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
             glBlitFramebuffer(0, 0, width*2, height*2, 0, 0, width*2, height*2, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
             light_box->use();
             light_box->set_uniform_m4("u_P", camera->get_proj_matrix());
             light_box->set_uniform_m4("u_V", camera->get_view_matrix());
-            for (unsigned int i = 0; i < lightPositions.size(); i++)
-            {
+            for (unsigned int i = 0; i < lightPositions.size(); i++){
                 model = glm::mat4(1.0f);
                 model = glm::translate(model, lightPositions[i]);
                 model = glm::scale(model, glm::vec3(1.125f));
@@ -542,9 +547,7 @@ int main(int argc, char* argv[]) {
 
 
         }
-
-
-
+        
         /**
          * IMGUI AND THEN FINISH RENDERING
          */
