@@ -68,10 +68,15 @@ std::shared_ptr<Camera> camera;
 std::shared_ptr<Shader> shader;
 std::shared_ptr<Shader> particle_shader;
 std::shared_ptr<Shader> skybox_shader;
+std::shared_ptr<Shader> gbuffer_shader;
+std::shared_ptr<Shader> deferred_shader;
+std::shared_ptr<Shader> light_box;
 LightPoint point_light;
 LightDirectional sun;
 bool update_projection { true };
 GLuint smoke;
+GLuint textures[3];
+
 
 void key_callback(GLFWwindow* window, int key, int, int action, int) {
     switch(key){
@@ -109,12 +114,11 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos){
         lastY = ypos;
         firstMouse = false;
     }
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+    lastX = xpos;
+    lastY = ypos;
     if(!mouse_free) {
-        float xoffset = xpos - lastX;
-        float yoffset = lastY - ypos;
-        lastX = xpos;
-        lastY = ypos;
-
         float sensitivity{0.1f};
         xoffset *= sensitivity;
         yoffset *= sensitivity;
@@ -165,6 +169,10 @@ void init() {
     particle_shader = std::make_shared<Shader>("../Resources/shaders/particle.vert", "../Resources/shaders/particle.frag");
     skybox_shader = std::make_shared<Shader>("../Resources/shaders/sky.vert", "../Resources/shaders/sky.frag");
 
+    gbuffer_shader = std::make_shared<Shader>("../Resources/shaders/gbuffer.vert", "../Resources/shaders/gbuffer.frag");
+    deferred_shader = std::make_shared<Shader>("../Resources/shaders/deferred.vert", "../Resources/shaders/deferred.frag");
+    light_box = std::make_shared<Shader>("../Resources/shaders/lightBox.vert", "../Resources/shaders/lightBox.frag");
+
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -172,6 +180,10 @@ void init() {
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 150");
+
+    textures[0] = TextureManager::load_single_color_texture(128, 255, 255);
+    textures[1] = TextureManager::load_single_color_texture(255, 128, 128);
+    textures[2] = TextureManager::load_single_color_texture(128, 128, 255);
 }
 
 void process_input(double dt){
@@ -229,6 +241,7 @@ void process_input(double dt){
 
 bool test{ false };
 float col[3];
+bool deferred{ false };
 void imgui_start_frame(){
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -239,6 +252,7 @@ void imgui_start_frame(){
 
     ImGui::Text("Adv Graphics Project");
     ImGui::Checkbox("Imgui checkbox", &test);
+    ImGui::Checkbox("Deferred Rendering", &deferred);
 
     ImGui::SliderFloat("x", &point_light.position.x, -100.0f, 100.0f);
     ImGui::SliderFloat("y", &point_light.position.y, -100.0f, 100.0f);
@@ -257,6 +271,11 @@ void imgui_start_frame(){
     ImGui::Render();
 }
 
+
+void renderQuad();
+void renderCube();
+
+
 int main(int argc, char* argv[]) {
     init();
     double last_time{ 0.0 };
@@ -274,13 +293,97 @@ int main(int argc, char* argv[]) {
 
     smoke = TextureManager::load_texture_from_file("../Resources/textures/smoke.png");
 
-    Sky sky;
+    /**
+     * INIT THE G_BUFFER
+     * For Deferred rendering
+     *
+     */
+    unsigned int gBuffer;
+    glGenFramebuffers(1, &gBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+    unsigned int gPosition, gNormal, gAlbedoSpec;
+    // position color buffer
+    glGenTextures(1, &gPosition);
+    glBindTexture(GL_TEXTURE_2D, gPosition);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width*2, height*2, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
+    // normal color buffer
+    glGenTextures(1, &gNormal);
+    glBindTexture(GL_TEXTURE_2D, gNormal);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width*2, height*2, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
+    // color + specular color buffer
+    glGenTextures(1, &gAlbedoSpec);
+    glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width*2, height*2, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedoSpec, 0);
+    // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
+    unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+    glDrawBuffers(3, attachments);
+    // create and attach depth buffer (renderbuffer)
+    unsigned int rboDepth;
+    glGenRenderbuffers(1, &rboDepth);
+    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width*2, height*2);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+    // finally check if framebuffer is complete
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "Framebuffer not complete!" << std::endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+
+
+
+    // lighting info
+    // -------------
+    const unsigned int NR_LIGHTS = 32;
+    std::vector<glm::vec3> lightPositions;
+    std::vector<glm::vec3> lightColors;
+    srand(1337);
+    for (unsigned int i = 0; i < NR_LIGHTS; i++)
+    {
+        // calculate slightly random offsets
+        float xPos = ((rand() % 100) / 100.0) * 120 - 60;
+        float yPos = ((rand() % 100) / 100.0) * 36 - 12;
+        float zPos = ((rand() % 100) / 100.0) * 120 - 60;
+        lightPositions.emplace_back(glm::vec3(xPos, yPos, zPos));
+        // also calculate random color
+        float rColor = ((rand() % 100) / 200.0f) + 0.5; // between 0.5 and 1.0
+        float gColor = ((rand() % 100) / 200.0f) + 0.5; // between 0.5 and 1.0
+        float bColor = ((rand() % 100) / 200.0f) + 0.5; // between 0.5 and 1.0
+        lightColors.emplace_back(glm::vec3(rColor, gColor, bColor));
+    }
+
+
+
+    std::vector<glm::vec3> objectPositions;
+    objectPositions.emplace_back(glm::vec3(-30.0,  -5, -30.0));
+    objectPositions.emplace_back(glm::vec3( 0.0,  -5, -30.0));
+    objectPositions.emplace_back(glm::vec3( 30.0,  -5, -30.0));
+    objectPositions.emplace_back(glm::vec3(-30.0,  -5,  0.0));
+    objectPositions.emplace_back(glm::vec3( 0.0,  -5,  0.0));
+    objectPositions.emplace_back(glm::vec3( 30.0,  -5,  0.0));
+    objectPositions.emplace_back(glm::vec3(-30.0,  -5,  30.0));
+    objectPositions.emplace_back(glm::vec3( 0.0,  -5,  30.0));
+    objectPositions.emplace_back(glm::vec3( 30.0,  -5,  30.0));
+
+
+    /**
+    * DEFERRED RENDERING INIT END
+    * MAIN LOOP START
+    *
+    */
     while (!glfwWindowShouldClose(window)) {
         current_time = glfwGetTime();
         dt = current_time - last_time;
         last_time = current_time;
-        
+
         glfwPollEvents();
         process_input(dt);
 
@@ -292,77 +395,163 @@ int main(int argc, char* argv[]) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
-
-        terrain_shader->use();
-        terrain_shader->set_uniform_v3("u_light.ambient", sun.ambient);
-        terrain_shader->set_uniform_v3("u_light.diffuse", sun.diffuse);
-        terrain_shader->set_uniform_v3("u_light.specular", sun.specular);
-        terrain_shader->set_uniform_v3("u_light.direction", sun.direction);
-        terrain_shader->set_uniform_m4("u_M", glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f)));
-        terrain_shader->set_uniform_m4("u_V", camera->get_view_matrix());
-        terrain_shader->set_uniform_m4("u_P", camera->get_proj_matrix());
-        terrain_shader->set_uniform_v3("u_viewPos", camera->position);
-        terrain.draw(terrain_shader.get());
+        if(!deferred){
 
 
-        shader->use();
+            terrain_shader->use();
+            terrain_shader->set_uniform_v3("u_light.ambient", sun.ambient);
+            terrain_shader->set_uniform_v3("u_light.diffuse", sun.diffuse);
+            terrain_shader->set_uniform_v3("u_light.specular", sun.specular);
+            terrain_shader->set_uniform_v3("u_light.direction", sun.direction);
+            terrain_shader->set_uniform_m4("u_M", glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f)));
+            terrain_shader->set_uniform_m4("u_V", camera->get_view_matrix());
+            terrain_shader->set_uniform_m4("u_P", camera->get_proj_matrix());
+            terrain_shader->set_uniform_v3("u_viewPos", camera->position);
+            terrain.draw(terrain_shader.get());
 
 
-        shader->set_uniform_v3("u_light_sun.ambient", sun.ambient);
-        shader->set_uniform_v3("u_light_sun.diffuse", sun.diffuse);
-        shader->set_uniform_v3("u_light_sun.specular", sun.specular);
-
-        shader->set_uniform_v3("u_sunDir", sun.direction);
+            shader->use();
 
 
-        shader->set_uniform_v3("u_light_point[0].ambient", point_light.ambient);
-        shader->set_uniform_v3("u_light_point[0]diffuse", point_light.diffuse);
-        shader->set_uniform_v3("u_light_point[0].specular", point_light.specular);
+            shader->set_uniform_v3("u_light_sun.ambient", sun.ambient);
+            shader->set_uniform_v3("u_light_sun.diffuse", sun.diffuse);
+            shader->set_uniform_v3("u_light_sun.specular", sun.specular);
 
-        shader->set_uniform_v3("u_lightPositions[0]", point_light.position);
-
-        shader->set_uniform_f("u_light_point[0].K_c", point_light.K_c);
-        shader->set_uniform_f("u_light_point[0].K_l", point_light.K_l);
-        shader->set_uniform_f("u_light_point[0].K_q", point_light.K_q);
+            shader->set_uniform_v3("u_sunDir", sun.direction);
 
 
+            shader->set_uniform_v3("u_light_point[0].ambient", point_light.ambient);
+            shader->set_uniform_v3("u_light_point[0]diffuse", point_light.diffuse);
+            shader->set_uniform_v3("u_light_point[0].specular", point_light.specular);
 
-        shader->set_uniform_v3("u_cameraPos", camera->position);
-        shader->set_uniform_m4("u_V", camera->get_view_matrix());
-        if(update_projection){
-            shader->set_uniform_m4("u_P", camera->get_proj_matrix());
-            update_projection = false;
+            shader->set_uniform_v3("u_lightPositions[0]", point_light.position);
+
+            shader->set_uniform_f("u_light_point[0].K_c", point_light.K_c);
+            shader->set_uniform_f("u_light_point[0].K_l", point_light.K_l);
+            shader->set_uniform_f("u_light_point[0].K_q", point_light.K_q);
+
+
+            shader->set_uniform_v3("u_cameraPos", camera->position);
+            shader->set_uniform_m4("u_V", camera->get_view_matrix());
+            if(update_projection){
+                shader->set_uniform_m4("u_P", camera->get_proj_matrix());
+                update_projection = false;
+            }
+
+            player.draw(0, *shader, current_time);
+            //model->draw(*shader);
+
+
+            particle_system.draw(smoke, width, height, camera);
+
+
+            /*
+            glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
+            skybox_shader->use();
+            skybox_shader->set_uniform_i("u_skybox", 0);
+            skybox_shader->set_uniform_m4("u_V", camera->get_view_matrix());
+            skybox_shader->set_uniform_m4("u_P", camera->get_proj_matrix());
+            skybox_shader->set_uniform_m4("u_M", glm::scale(glm::mat4(1.0f), glm::vec3(10000.0f)));
+            // skybox cube
+            glBindVertexArray(sky.VAO);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, sky.texture);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+            glBindVertexArray(0);
+            glDepthFunc(GL_LESS); // set depth function back to default
+             */
+
+        }
+        else{
+            deferred_shader->use();
+            deferred_shader->set_uniform_i("u_gPos", 0);
+            deferred_shader->set_uniform_i("u_gNormal", 1);
+            deferred_shader->set_uniform_i("u_gAlbedoSpec", 2);
+
+
+            // GEOMETRY PASS
+            glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glm::mat4 model = glm::mat4(1.0f);
+            gbuffer_shader->use();
+            gbuffer_shader->set_uniform_m4("u_P", camera->get_proj_matrix());
+            gbuffer_shader->set_uniform_m4("u_V", camera->get_view_matrix());
+            for (unsigned int i = 0; i < objectPositions.size(); i++)
+            {
+                model = glm::mat4(1.0f);
+                model = glm::translate(model, objectPositions[i]);
+                model = glm::scale(model, glm::vec3(0.05f));
+                gbuffer_shader->set_uniform_m4("model", model);
+                player.draw(0, *gbuffer_shader, 0);
+            }
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+
+
+
+            // 2. lighting pass: calculate lighting by iterating over a screen filled quad pixel-by-pixel using the gbuffer's content.
+            // -----------------------------------------------------------------------------------------------------------------------
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            deferred_shader->use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, gPosition);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, gNormal);
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
+            // send light relevant uniforms
+            for (unsigned int i = 0; i < lightPositions.size(); i++)
+            {
+                deferred_shader->set_uniform_v3("u_lights[" + std::to_string(i) + "].Position", lightPositions[i]);
+                deferred_shader->set_uniform_v3("u_lights[" + std::to_string(i) + "].Color", lightColors[i]);
+                // update attenuation parameters and calculate radius
+                const float linear = 0.02;
+                const float quadratic = 0.0019;
+                deferred_shader->set_uniform_f("u_lights[" + std::to_string(i) + "].Linear", linear);
+                deferred_shader->set_uniform_f("u_lights[" + std::to_string(i) + "].Quadratic", quadratic);
+            }
+            deferred_shader->set_uniform_v3("u_viewPos", camera->position);
+            // finally render quad
+            renderQuad();
+
+
+
+            // 2.5. copy content of geometry's depth buffer to default framebuffer's depth buffer
+            // ----------------------------------------------------------------------------------
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
+            // blit to default framebuffer. Note that this may or may not work as the internal formats of both the FBO and default framebuffer have to match.
+            // the internal formats are implementation defined. This works on all of my systems, but if it doesn't on yours you'll likely have to write to the
+            // depth buffer in another shader stage (or somehow see to match the default framebuffer's internal format with the FBO's internal format).
+            glBlitFramebuffer(0, 0, width*2, height*2, 0, 0, width*2, height*2, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+            light_box->use();
+            light_box->set_uniform_m4("u_P", camera->get_proj_matrix());
+            light_box->set_uniform_m4("u_V", camera->get_view_matrix());
+            for (unsigned int i = 0; i < lightPositions.size(); i++)
+            {
+                model = glm::mat4(1.0f);
+                model = glm::translate(model, lightPositions[i]);
+                model = glm::scale(model, glm::vec3(1.125f));
+                light_box->set_uniform_m4("model", model);
+                light_box->set_uniform_v3("u_lightColor", lightColors[i]);
+                renderCube();
+            }
+
+
         }
 
-        player.draw(0, *shader, current_time);
-        //model->draw(*shader);
 
 
-        particle_system.draw(smoke, width, height, camera);
-
-
-        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
-        skybox_shader->use();
-        skybox_shader->set_uniform_i("u_skybox", 0);
-        skybox_shader->set_uniform_m4("u_V", camera->get_view_matrix());
-        skybox_shader->set_uniform_m4("u_P", camera->get_proj_matrix());
-        skybox_shader->set_uniform_m4("u_M", glm::scale(glm::mat4(1.0f), glm::vec3(10000.0f)));
-        // skybox cube
-        glBindVertexArray(sky.VAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, sky.texture);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);
-        glDepthFunc(GL_LESS); // set depth function back to default
-        glfwSwapBuffers(window);
-
-
-
-
+        /**
+         * IMGUI AND THEN FINISH RENDERING
+         */
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 
-
+        glfwSwapBuffers(window);
 
 
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
@@ -372,4 +561,121 @@ int main(int argc, char* argv[]) {
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
     return 0;
+}
+
+
+
+unsigned int quadVAO = 0;
+unsigned int quadVBO;
+void renderQuad()
+{
+    if (quadVAO == 0)
+    {
+        float quadVertices[] = {
+                // positions        // texture Coords
+                -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+                -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+                1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+                1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+        };
+        // setup plane VAO
+        glGenVertexArrays(1, &quadVAO);
+        glGenBuffers(1, &quadVBO);
+        glBindVertexArray(quadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    }
+    glBindVertexArray(quadVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
+}
+
+unsigned int cubeVAO = 0;
+unsigned int cubeVBO = 0;
+
+void renderCube()
+{
+    // initialize (if necessary)
+    if (cubeVAO == 0)
+    {
+        float vertices[] = {
+                // back face
+                -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+                1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+                1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right
+                1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+                -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+                -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
+                // front face
+                -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+                1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
+                1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+                1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+                -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
+                -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+                // left face
+                -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+                -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
+                -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+                -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+                -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+                -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+                // right face
+                1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+                1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+                1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right
+                1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+                1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+                1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left
+                // bottom face
+                -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+                1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
+                1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+                1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+                -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+                -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+                // top face
+                -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+                1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+                1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right
+                1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+                -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+                -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left
+        };
+        glGenVertexArrays(1, &cubeVAO);
+        glGenBuffers(1, &cubeVBO);
+        // fill buffer
+        glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        // link vertex attributes
+        glBindVertexArray(cubeVAO);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+
+    /*
+    glActiveTexture(GL_TEXTURE0);
+    shader.set_uniform_i("texture_diffuse1", 0);
+    glBindTexture(GL_TEXTURE_2D, textures[0]);
+    glActiveTexture(GL_TEXTURE1);
+    shader.set_uniform_i("texture_normal1", 1);
+    glBindTexture(GL_TEXTURE_2D, textures[1]);
+    glActiveTexture(GL_TEXTURE2);
+    shader.set_uniform_i("texture_specular1", 2);
+    glBindTexture(GL_TEXTURE_2D, textures[2]);*/
+
+    // render Cube
+    glBindVertexArray(cubeVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
 }
