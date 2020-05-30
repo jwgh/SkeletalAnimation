@@ -389,6 +389,7 @@ int main(int argc, char* argv[]) {
 
         particle_system.update(dt);
         player.update(dt);
+        player.pos.y = terrain.get_height(player.pos.x/6.2992125f, player.pos.z/6.2992125f);
         imgui_start_frame();
 
         glClearColor(col[0], col[1], col[2], 1.0f);
@@ -547,7 +548,7 @@ int main(int argc, char* argv[]) {
 
 
         }
-        
+
         /**
          * IMGUI AND THEN FINISH RENDERING
          */

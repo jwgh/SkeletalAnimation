@@ -31,6 +31,8 @@ public:
 
     void draw(Shader* shader);
 
+    float get_height(int x, int z);
+
 private:
     double x;
     double z;
@@ -41,7 +43,7 @@ private:
 
     HeightsGenerator heights_generator;
 
-    float get_height(int x, int z);
+
     glm::vec3 calc_normal(int x, int z);
     //Texture texture;
 

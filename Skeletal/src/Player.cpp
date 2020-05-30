@@ -32,11 +32,11 @@ void Player::processMovement(Player::Movement m, double dt){
     }
 
     if(m == Movement::TURN_LEFT){
-        yaw += velocity;
+        yaw += velocity*2;
     }
 
     if(m == Movement::TURN_RIGHT){
-        yaw -= velocity;
+        yaw -= velocity*2;
     }
 }
 

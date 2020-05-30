@@ -26,6 +26,9 @@ RawModel Terrain::generateTerrain(){
             vertices[vert_ptr].UV[0] = static_cast<float>(j) / (static_cast<float>(VERTEX_COUNT - 1));
             vertices[vert_ptr].UV[1] = static_cast<float>(i) / (static_cast<float>(VERTEX_COUNT - 1));
             vert_ptr++;
+            if(i==0){
+                std::cout << "(i, j), (x,y,z) = ("  << i << "," << j << "), ("<< static_cast<float>(j) / (static_cast<float>(VERTEX_COUNT - 1)) * SIZE << "," << get_height(i, j) << "," << static_cast<float>(i) / (static_cast<float>(VERTEX_COUNT - 1)) * SIZE << ")" << std::endl;
+            }
         }
     }
 
