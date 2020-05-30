@@ -36,6 +36,7 @@ public:
 private:
     double x;
     double z;
+    GLuint texture_snow, texture_rock, texture_grass, texture_dirt, texture_sand;
 
     RawModel model;
 

@@ -19,6 +19,6 @@ void main(){
     v_normal = a_normal;
     v_worldPos = p.xyz;
     v_height = a_pos.y;
-    v_UV = a_UV;
+    v_UV = a_UV * 0.1;
 
 }

@@ -10,9 +10,9 @@ HeightsGenerator::HeightsGenerator() : seed{ 42 }{
 
 float HeightsGenerator::generate_height(float x, float z){
 
-    return (PerlinNoise::noise(x*0.00625, z*0.00625, 5.0*0.00625) * AMPLITUDE_MAJOR +
+    return ((PerlinNoise::noise(x*0.00625, z*0.00625, 5.0*0.00625) * AMPLITUDE_MAJOR +
             PerlinNoise::noise(x*0.0125, z*0.0125, 5.0*0.0125) * AMPLITUDE_MIDDLE +
-            PerlinNoise::noise(x*0.025, z*0.025, 5.0*0.025) * AMPLITUDE_MINOR) * 2.0f - 1.0f;
+            PerlinNoise::noise(x*0.025, z*0.025, 5.0*0.025) * AMPLITUDE_MINOR) * 3.0f) - 1.5f;
     return get_interpolated_noise(x * 0.125f, z * 0.125f) * AMPLITUDE_MAJOR +
             get_interpolated_noise(x * 0.25f, z * 0.25f) * AMPLITUDE_MINOR ;
 }

@@ -25,8 +25,8 @@ RawModel Terrain::generateTerrain(){
             vertices[vert_ptr].pos[1] = get_height(v_x, v_y);
             vertices[vert_ptr].pos[2] = v_y;
             vertices[vert_ptr].normal = calc_normal(v_x, v_y);
-            vertices[vert_ptr].UV[0] = static_cast<float>(j) / (static_cast<float>(VERTEX_COUNT - 1));
-            vertices[vert_ptr].UV[1] = static_cast<float>(i) / (static_cast<float>(VERTEX_COUNT - 1));
+            vertices[vert_ptr].UV[0] = v_x; //static_cast<float>(j) / (static_cast<float>(VERTEX_COUNT - 1));
+            vertices[vert_ptr].UV[1] = v_y; //static_cast<float>(i) / (static_cast<float>(VERTEX_COUNT - 1));
             vert_ptr++;
             if(i==0){
                 std::cout << "(i, j), (x,y,z) = ("  << i << "," << j << "), ("<< static_cast<float>(j) / (static_cast<float>(VERTEX_COUNT - 1)) * SIZE << "," << get_height(i, j) << "," << static_cast<float>(i) / (static_cast<float>(VERTEX_COUNT - 1)) * SIZE << ")" << std::endl;
@@ -78,15 +78,32 @@ RawModel Terrain::generateTerrain(){
 
     GLuint texture_color = TextureManager::load_single_color_texture(42, 120, 42);
 
+    texture_snow = TextureManager::load_texture_from_file("../Resources/textures/snow.jpg");
+    texture_rock = TextureManager::load_texture_from_file("../Resources/textures/rock.jpg");
+    texture_grass = TextureManager::load_texture_from_file("../Resources/textures/grass.jpg");
+    texture_dirt = TextureManager::load_texture_from_file("../Resources/textures/dirt.jpg");
+    texture_sand = TextureManager::load_texture_from_file("../Resources/textures/sand.jpg");
+
     std::cout << "texture:" << texture_color << std::endl;
     return RawModel{VAO, count, indices_size, texture_color};
 }
 
 void Terrain::draw(Shader* shader){
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, model.texture);
-
+    glBindTexture(GL_TEXTURE_2D, texture_snow);
     shader->set_uniform_i("u_Diffuse0", 0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture_rock);
+    shader->set_uniform_i("u_Diffuse1", 1);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, texture_grass);
+    shader->set_uniform_i("u_Diffuse2", 2);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, texture_dirt);
+    shader->set_uniform_i("u_Diffuse3", 3);
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, texture_sand);
+    shader->set_uniform_i("u_Diffuse4", 4);
 
     glBindVertexArray(model.VAO);
     glDrawElements(GL_TRIANGLES, model.num_indices, GL_UNSIGNED_INT, 0);
