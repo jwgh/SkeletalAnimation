@@ -19,10 +19,12 @@ RawModel Terrain::generateTerrain(){
 
     for(auto i{0}; i < VERTEX_COUNT; i++){
         for(auto j{0}; j < VERTEX_COUNT; j++){
-            vertices[vert_ptr].pos[0] = static_cast<float>(j) / (static_cast<float>(VERTEX_COUNT - 1)) * SIZE;
-            vertices[vert_ptr].pos[1] = get_height(i, j);
-            vertices[vert_ptr].pos[2] = static_cast<float>(i) / (static_cast<float>(VERTEX_COUNT - 1)) * SIZE;
-            vertices[vert_ptr].normal = calc_normal(i, j);
+            float v_x = static_cast<float>(j) / (static_cast<float>(VERTEX_COUNT - 1)) * SIZE;
+            float v_y = static_cast<float>(i) / (static_cast<float>(VERTEX_COUNT - 1)) * SIZE;
+            vertices[vert_ptr].pos[0] = v_x;
+            vertices[vert_ptr].pos[1] = get_height(v_x, v_y);
+            vertices[vert_ptr].pos[2] = v_y;
+            vertices[vert_ptr].normal = calc_normal(v_x, v_y);
             vertices[vert_ptr].UV[0] = static_cast<float>(j) / (static_cast<float>(VERTEX_COUNT - 1));
             vertices[vert_ptr].UV[1] = static_cast<float>(i) / (static_cast<float>(VERTEX_COUNT - 1));
             vert_ptr++;
