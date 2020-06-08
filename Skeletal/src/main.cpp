@@ -14,6 +14,7 @@
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include "Model.h"
 #include "Camera.h"
@@ -23,6 +24,7 @@
 #include "Player.h"
 #include "Terrain.h"
 #include "Sky.h"
+#include "Game.h"
 
 std::bitset<512> keyboard_status{ 0 };
 std::bitset<512> keyboard_status_prev{ 0 };
@@ -62,6 +64,7 @@ enum KEY{
 
 GLFWwindow* window;
 Player player;
+Game game;
 std::shared_ptr<Model> run;
 std::shared_ptr<Model> idle;
 std::shared_ptr<Camera> camera;
@@ -242,6 +245,7 @@ void process_input(double dt){
 bool test{ false };
 float col[3];
 bool deferred{ false };
+bool game_started{ false };
 void imgui_start_frame(){
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -251,7 +255,7 @@ void imgui_start_frame(){
     ImGui::Begin("Hello, world!");
 
     ImGui::Text("Adv Graphics Project");
-    ImGui::Checkbox("Imgui checkbox", &test);
+    ImGui::Checkbox("Game:", &game_started);
     ImGui::Checkbox("Deferred Rendering", &deferred);
 
     ImGui::SliderFloat("x", &point_light.position.x, -100.0f, 100.0f);
@@ -264,6 +268,9 @@ void imgui_start_frame(){
     }
     ImGui::SameLine();
     ImGui::Text("counter = %d", counter);
+    ImGui::Text("GAME TIME: = %f", game.time);
+    ImGui::Text("BOXES COLLECTED = %d", game.collected);
+    ImGui::Text("SCORE = %f", game.score);
 
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::End();
@@ -379,17 +386,44 @@ int main(int argc, char* argv[]) {
     * MAIN LOOP START
     *
     */
+    for(auto& b : game.boxes){
+        b.pos.y = terrain.get_height(b.pos.x, b.pos.z) + 8.0f;
+    }
+
     while (!glfwWindowShouldClose(window)) {
         current_time = glfwGetTime();
         dt = current_time - last_time;
         last_time = current_time;
+        if(game_started){ game.time += dt; game.time_between_boxes += dt; }
 
         glfwPollEvents();
         process_input(dt);
 
         particle_system.update(dt);
+        //particle_system.update(dt, keyboard_status[KEY::SPACE]);
         player.update(dt);
         player.pos.y = terrain.get_height(player.pos.x, player.pos.z);
+        for(auto& b : game.boxes){
+            if(glm::distance(player.pos, b.pos) < 12.0){
+                if(!b.collected){
+                    game.collected++;
+                    game.score += 100.0/game.time_between_boxes;
+                    game.time_between_boxes = 0.0;
+                }
+                b.collected = true;
+            }
+        }
+        if(game.collected >= 10){
+            std::cout << "You WON!" << std::endl;
+            std::cout << "Final score: " << game.score << std::endl;
+            std::cout << "Time: " << game.time << std::endl;
+            game_started = false;
+        }
+        if(game.time > 120){
+            std::cout << "You LOST!" << std::endl;
+            std::cout << "Final score: " << game.score << std::endl;
+            game_started = false;
+        }
         imgui_start_frame();
 
         glClearColor(col[0], col[1], col[2], 1.0f);
@@ -444,7 +478,23 @@ int main(int argc, char* argv[]) {
 
 
             particle_system.draw(smoke, width, height, camera);
+            //particle_system.draw(smoke, width, height, camera, player.pos);
 
+
+            light_box->use();
+            light_box->set_uniform_m4("u_P", camera->get_proj_matrix());
+            light_box->set_uniform_m4("u_V", camera->get_view_matrix());
+            for(const auto& b : game.boxes){
+                if(b.collected){ continue; }
+                glm::mat4 T{ 1.0f };
+                T[3] = glm::vec4{b.pos, 1.0f };
+                glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(3.0f));
+                glm::mat4 model = T * glm::mat4_cast(b.orientation) * S;
+                light_box->set_uniform_m4("model", model);
+                light_box->set_uniform_v3("u_lightColor", b.color);
+
+                renderCube();
+            }
 
             /*
             glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
@@ -558,7 +608,7 @@ int main(int argc, char* argv[]) {
         glfwSwapBuffers(window);
 
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        std::this_thread::sleep_for(std::chrono::milliseconds(9));
     }
 
     ImGui_ImplOpenGL3_Shutdown();

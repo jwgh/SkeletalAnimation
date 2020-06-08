@@ -13,8 +13,7 @@ void Player::processMovement(Player::Movement m, double dt){
     glm::quat qF = orientation * glm::quat(0, 0, 0, -1) * glm::conjugate(orientation);
     glm::vec3 front{ qF.x, qF.y, qF.z };
     glm::vec3 right{glm::normalize(glm::cross(front, glm::vec3(0, 1, 0)))};
-
-
+    
     if(m == Movement::FORWARD){
         pos -= front * velocity;
     }
@@ -32,11 +31,11 @@ void Player::processMovement(Player::Movement m, double dt){
     }
 
     if(m == Movement::TURN_LEFT){
-        yaw += velocity*2;
+        yaw += velocity*-4;
     }
 
     if(m == Movement::TURN_RIGHT){
-        yaw -= velocity*2;
+        yaw -= velocity*-4;
     }
 }
 
