@@ -8,7 +8,7 @@
 
 struct Particle {
 	float lifetime    { 0.0f };
-	float life_length { 10.0f };
+	float life_length { 2.0f };
 	glm::vec3 velocity{ 0.0f };
 	glm::vec3 pos     { 0.0f };
 };
@@ -29,7 +29,7 @@ class ParticleSystem {
 	void kill(int id);
 	void spawn(Particle& particle);
 	void process_particles(float dt);
-	void update(double dt);
+	void update(double dt, bool key);
 	void draw(GLuint texture, GLuint w, GLuint h, const std::shared_ptr<Camera>& camera);
 
 	GLuint VAO, VBO, EBO;

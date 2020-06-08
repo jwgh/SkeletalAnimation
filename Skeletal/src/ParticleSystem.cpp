@@ -49,7 +49,7 @@ void ParticleSystem::process_particles(float dt){
     }
 }
 
-void ParticleSystem::update(double dt){
+void ParticleSystem::update(double dt, bool key){
     static auto unit_sphere_rand_point= []() -> glm::vec3{
         glm::vec3 result{0.0f};
         static std::random_device rd;
@@ -61,13 +61,16 @@ void ParticleSystem::update(double dt){
         return glm::normalize(result);
     };
 
-    for(auto i{0}; i < 64; i++){
-        static auto p = Particle();
-        p.pos = unit_sphere_rand_point() * 5.0f;
-        p.velocity = unit_sphere_rand_point() * 5.0f;
-        p.velocity += glm::vec3(0.0f, 10.0f, 0.0f);
-        spawn(p);
+    if(key){
+        for(auto i{0}; i < 64; i++){
+            auto p = Particle();
+            p.pos = unit_sphere_rand_point() * 5.0f;
+            p.velocity = unit_sphere_rand_point() * 5.0f;
+            p.velocity += glm::vec3(0.0f, 10.0f, 0.0f);
+            spawn(p);
+        }
     }
+
     process_particles(dt);
     unsigned int active_particles = particles.size();
     std::vector<glm::vec4> data;

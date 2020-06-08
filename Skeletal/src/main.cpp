@@ -399,8 +399,8 @@ int main(int argc, char* argv[]) {
         glfwPollEvents();
         process_input(dt);
 
-        particle_system.update(dt);
-        //particle_system.update(dt, keyboard_status[KEY::SPACE]);
+        //particle_system.update(dt);
+        particle_system.update(dt, keyboard_status[KEY::SPACE]);
         player.update(dt);
         player.pos.y = terrain.get_height(player.pos.x, player.pos.z);
         for(auto& b : game.boxes){
