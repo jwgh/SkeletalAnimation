@@ -1,10 +1,14 @@
 # SkeletalAnimation
 #### Project for the GU course Advanced Computer Graphics
 ![](runanimation.gif)
-Dependencies: GLFW, GLM, GLAD, Assimp, stb image, imgui
-####Features:
+
+#### Dependencies: 
+GLFW, GLM, GLAD, Assimp, stb image, imgui
+
+#### Features:
 * Basic 3D rendering using OpenGL with phong lighting
 * Skeletal animation animated in vertex shader, importes animations using assimp
+* Normal mapping for light calculations
 * A basic particle system
 * Quaternion camera and object orientations
 * Perlin noise generation of terrain
