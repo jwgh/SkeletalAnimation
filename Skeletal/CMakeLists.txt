@@ -22,7 +22,7 @@ add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES} ${IMGUI_SRC})
 
 list(APPEND CMAKE_PREFIX_PATH /usr/local/Cellar)
 
-link_directories(/usr/local/Cellar/glfw/3.3/lib) # I know hard coding paths sux... but find_package doesnt work correctly on my machine
+link_directories(/usr/local/Cellar/glfw/3.3/lib) # TODO: use find-package instead (currently hard coded because find-package doesn't find my packages installed via brew)
 include_directories(/usr/local/Cellar/glfw/3.3/include)
 target_link_libraries (${PROJECT_NAME} /usr/local/Cellar/glfw/3.3/lib/libglfw.3.3.dylib)
 
